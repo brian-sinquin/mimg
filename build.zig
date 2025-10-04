@@ -4,6 +4,8 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
+    const documentation = b.option(bool, "docs", "Generate documentation") orelse false;
+
     const exe = b.addExecutable(.{
         .name = "mimg",
         .root_module = b.createModule(.{ .root_source_file = b.path("src/main.zig"), .target = target, .optimize = optimize }),
@@ -27,6 +29,10 @@ pub fn build(b: *std.Build) void {
 
     if (b.args) |args| {
         run_cmd.addArgs(args);
+    }
+
+    if (documentation) {
+        std.log.warn("Documentation generation is not yet supported on this Zig release.", .{});
     }
 
     // const exe_tests = b.addTest(.{
