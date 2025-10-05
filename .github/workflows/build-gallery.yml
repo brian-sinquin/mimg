@@ -5,7 +5,9 @@ on:
     branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
-
+permissions:
+  contents: write
+  
 jobs:
   build-gallery:
     runs-on: ubuntu-latest
