@@ -3,6 +3,9 @@ const types = @import("types.zig");
 const utils = @import("utils.zig");
 const basic = @import("basic.zig");
 
+// Version is set at build time via build options
+pub const VERSION: []const u8 = @import("build_options").version;
+
 pub const CliError = error{
     UnknownArgument,
     InvalidArguments,
@@ -162,6 +165,94 @@ const options = [_]types.Argument{
         .func = basic.medianFilterImage,
     },
     .{
+        .names = .{ .single = "threshold" },
+        .option_type = types.ArgType.Modifier,
+        .param_types = &[_]type{u8},
+        .description = "Convert image to pure black and white based on luminance threshold",
+        .usage = "threshold <value (0-255)>",
+        .func = basic.thresholdImage,
+    },
+    .{
+        .names = .{ .single = "solarize" },
+        .option_type = types.ArgType.Modifier,
+        .param_types = &[_]type{u8},
+        .description = "Invert colors above threshold for artistic effect",
+        .usage = "solarize <threshold (0-255)>",
+        .func = basic.solarizeImage,
+    },
+    .{
+        .names = .{ .single = "edge-detect" },
+        .option_type = types.ArgType.Modifier,
+        .param_types = &[_]type{},
+        .description = "Detect edges using Sobel operator",
+        .usage = "edge-detect",
+        .func = basic.edgeDetectImage,
+    },
+    .{
+        .names = .{ .single = "pixelate" },
+        .option_type = types.ArgType.Modifier,
+        .param_types = &[_]type{u8},
+        .description = "Apply pixelation/mosaic effect",
+        .usage = "pixelate <block_size>",
+        .func = basic.pixelateImage,
+    },
+    .{
+        .names = .{ .single = "noise" },
+        .option_type = types.ArgType.Modifier,
+        .param_types = &[_]type{f32},
+        .description = "Add random noise to image",
+        .usage = "noise <amount (0.0-1.0)>",
+        .func = basic.addNoiseImage,
+    },
+    .{
+        .names = .{ .single = "exposure" },
+        .option_type = types.ArgType.Modifier,
+        .param_types = &[_]type{f32},
+        .description = "Adjust exposure (like camera EV)",
+        .usage = "exposure <value (-2.0 to 2.0)>",
+        .func = basic.adjustExposure,
+    },
+    .{
+        .names = .{ .single = "vibrance" },
+        .option_type = types.ArgType.Modifier,
+        .param_types = &[_]type{f32},
+        .description = "Adjust vibrance (smart saturation)",
+        .usage = "vibrance <factor>",
+        .func = basic.adjustVibrance,
+    },
+    .{
+        .names = .{ .single = "equalize" },
+        .option_type = types.ArgType.Modifier,
+        .param_types = &[_]type{},
+        .description = "Apply histogram equalization for better contrast",
+        .usage = "equalize",
+        .func = basic.equalizeImage,
+    },
+    .{
+        .names = .{ .single = "colorize" },
+        .option_type = types.ArgType.Modifier,
+        .param_types = &[_]type{ u8, u8, u8, f32 },
+        .description = "Colorize/tint image with RGB color",
+        .usage = "colorize <r> <g> <b> <intensity (0.0-1.0)>",
+        .func = basic.colorizeImage,
+    },
+    .{
+        .names = .{ .single = "duotone" },
+        .option_type = types.ArgType.Modifier,
+        .param_types = &[_]type{ u8, u8, u8, u8, u8, u8 },
+        .description = "Apply duotone effect (Spotify-style)",
+        .usage = "duotone <dark_r> <dark_g> <dark_b> <light_r> <light_g> <light_b>",
+        .func = basic.duotoneImage,
+    },
+    .{
+        .names = .{ .single = "oil-painting" },
+        .option_type = types.ArgType.Modifier,
+        .param_types = &[_]type{usize},
+        .description = "Apply oil painting artistic effect",
+        .usage = "oil-painting <radius>",
+        .func = basic.oilPaintingImage,
+    },
+    .{
         .names = .{ .pair = .{ .short = "-o", .long = "--output" } },
         .option_type = types.ArgType.Option,
         .param_types = &[_]type{[]const u8},
@@ -178,7 +269,7 @@ const options = [_]types.Argument{
         .func = setOutputDirectory,
     },
     .{
-        .names = .{ .pair = .{ .short = "-L", .long = "--list-modifiers" } },
+        .names = .{ .pair = .{ .short = "-l", .long = "--list-modifiers" } },
         .option_type = types.ArgType.Option,
         .param_types = &[_]type{},
         .description = "List available modifiers with their usage",
@@ -200,6 +291,14 @@ const options = [_]types.Argument{
         .description = "Display command usage information",
         .usage = "--help",
         .func = printHelp,
+    },
+    .{
+        .names = .{ .pair = .{ .short = "-V", .long = "--version" } },
+        .option_type = types.ArgType.Option,
+        .param_types = &[_]type{},
+        .description = "Display version information",
+        .usage = "--version",
+        .func = printVersion,
     },
 };
 
@@ -237,6 +336,14 @@ pub fn printModifiers(ctx: *types.Context, args: anytype) !void {
             std.debug.print("    usage: {s}\n", .{option.usage});
         }
     }
+}
+
+pub fn printVersion(ctx: *types.Context, args: anytype) !void {
+    _ = ctx;
+    _ = args;
+    std.debug.print("mimg v{s}\n", .{VERSION});
+    std.debug.print("A command-line image manipulation tool built with Zig\n", .{});
+    std.process.exit(0);
 }
 
 pub fn processArguments(ctx: *types.Context, iterator: *std.process.ArgIterator) !void {

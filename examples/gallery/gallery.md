@@ -1,14 +1,16 @@
-# MIMG Image Processing Examples
+# 🎨 MIMG Gallery
 
-This gallery showcases various image processing modifiers available in mimg.
+Visual showcase of all available image processing modifiers.
 
-All examples are generated from the original `lena.png` image.
+*All examples generated from the standard `lena.png` test image. For complete documentation, see the [main README](../../README.md).*
 
-*Special thanks to Lena Söderberg, whose iconic photograph has been a cornerstone of image processing research for decades.*
+---
 
 ## Original Image
 
-![Original](examples/lena.png)
+![Original](lena.png)
+
+---
 
 ## Individual Modifiers
 
@@ -116,15 +118,87 @@ Reduce to 8 color levels
 
 ### Hue Shift
 
-Shift hue by 60 degrees
+Shift hue by 15 degrees
 
-![Hue Shift](output/hue-shift_60_lena.png)
+![Hue Shift](output/hue-shift_15_lena.png)
 
 ### Median Filter
 
 Apply 3x3 median filter
 
 ![Median Filter](output/median-filter_3_lena.png)
+
+### Threshold
+
+Convert to pure black and white
+
+![Threshold](output/threshold_128_lena.png)
+
+### Solarize
+
+Solarize effect with threshold
+
+![Solarize](output/solarize_128_lena.png)
+
+### Edge Detect
+
+Detect edges using Sobel operator
+
+![Edge Detect](output/edge-detect_lena.png)
+
+### Pixelate
+
+Apply pixelation effect
+
+![Pixelate](output/pixelate_10_lena.png)
+
+### Noise
+
+Add random noise to image
+
+![Noise](output/noise_0.1_lena.png)
+
+### Exposure +1
+
+Increase exposure by 1 EV
+
+![Exposure +1](output/exposure_1.0_lena.png)
+
+### Exposure -1
+
+Decrease exposure by 1 EV
+
+![Exposure -1](output/exposure_-1.0_lena.png)
+
+### Vibrance
+
+Boost vibrance (smart saturation)
+
+![Vibrance](output/vibrance_0.5_lena.png)
+
+### Equalize
+
+Histogram equalization for contrast
+
+![Equalize](output/equalize_lena.png)
+
+### Colorize Blue
+
+Tint with blue color
+
+![Colorize Blue](output/colorize_50_100_200_0.6_lena.png)
+
+### Duotone
+
+Purple to yellow duotone effect
+
+![Duotone](output/duotone_75_30_120_255_220_100_lena.png)
+
+### Oil Painting
+
+Artistic oil painting effect
+
+![Oil Painting](output/oil-painting_3_lena.png)
 
 ### Flip Horizontal
 
@@ -156,83 +230,99 @@ Crop to center 200x200
 
 ![Crop](output/crop_25_25_200_200_lena.png)
 
-## Modifier Combinations
 
-### Grayscale + Sepia
+---
 
-Vintage effect
+## Creative Combinations
 
-![Grayscale + Sepia](output/grayscale_sepia_lena.png)
+### Data Augmentation
 
-### Brightness + Contrast + Sharpen
+Flip + brightness variation for ML training data
 
-Enhanced image
+![Data Augmentation](output/flip_horizontal_brightness_20_lena.png)
 
-![Brightness + Contrast + Sharpen](output/brightness_30_contrast_1.2_sharpen_lena.png)
+### Geometric Augmentation
 
-### Saturation + Gamma
+Rotation + crop for dataset variety
 
-Color corrected
+![Geometric Augmentation](output/rotate_15_crop_50_50_200_200_lena.png)
 
-![Saturation + Gamma](output/saturation_0.3_gamma_1.5_lena.png)
+### Vintage Portrait
 
-### Blur + Sharpen
+Sepia tone with vignette for classic look
 
-Noise reduction with detail enhancement
+![Vintage Portrait](output/sepia_vignette_0.4_lena.png)
 
-![Blur + Sharpen](output/blur_5_sharpen_lena.png)
+### Color Grading
 
-### Sepia + Brightness
+Brightness + saturation for natural enhancement
 
-Warm vintage tone
+![Color Grading](output/brightness_15_saturation_1.2_lena.png)
 
-![Sepia + Brightness](output/sepia_brightness_20_lena.png)
+### Detail Enhancement
 
-### Gaussian Blur + Emboss
+Contrast boost + sharpening for crisp images
 
-Soft emboss effect
+![Detail Enhancement](output/contrast_1.2_sharpen_lena.png)
 
-![Gaussian Blur + Emboss](output/gaussian-blur_1.5_emboss_lena.png)
+### Noise Reduction
 
-### Vignette + Posterize
+Gaussian blur + median filter pipeline
 
-Vintage poster effect
+![Noise Reduction](output/gaussian-blur_1.0_median-filter_3_lena.png)
 
-![Vignette + Posterize](output/vignette_0.3_posterize_16_lena.png)
+### Graphic Art
 
-### Hue Shift + Saturation
+Posterize + emboss for artistic rendering
 
-Color transformation
+![Graphic Art](output/posterize_12_emboss_lena.png)
 
-![Hue Shift + Saturation](output/hue-shift_120_saturation_1.2_lena.png)
+### Monitor Calibration
 
-## Usage Examples
+Gamma correction + contrast adjustment
 
-```bash
-# Apply single modifier
-mimg image.png sepia --output sepia_image.png
+![Monitor Calibration](output/gamma_2.2_contrast_1.1_lena.png)
 
-# Chain multiple modifiers
-mimg image.png brightness 20 contrast 1.2 sharpen --output enhanced.png
+### Stylized Edges
 
-# Generate this gallery
-zig build gallery
-```
+Edge detection + posterize for graphic novel style
 
-## Available Modifiers
+![Stylized Edges](output/edge-detect_posterize_6_lena.png)
 
-| Modifier | Description | Parameters |
-|----------|-------------|------------|
-| invert | Invert colors | None |
-| grayscale | Convert to grayscale | None |
-| brightness | Adjust brightness | value (-128 to 127) |
-| contrast | Adjust contrast | factor (float) |
-| saturation | Adjust saturation | factor (float) |
-| gamma | Apply gamma correction | value (float) |
-| sepia | Apply sepia tone | None |
-| blur | Apply box blur | kernel_size (odd integer) |
-| sharpen | Sharpen image | None |
-| flip | Flip horizontally/vertically | direction |
-| rotate | Rotate by angle | degrees (float) |
-| resize | Resize image | width height |
-| crop | Crop image | x y width height |
+### Retro Game
+
+Pixelate + posterize for retro gaming aesthetic
+
+![Retro Game](output/pixelate_8_posterize_16_lena.png)
+
+### Film Grain
+
+Solarize + noise for vintage film look
+
+![Film Grain](output/solarize_180_noise_0.05_lena.png)
+
+### HDR Look
+
+Equalize + vibrance for HDR-style enhancement
+
+![HDR Look](output/equalize_vibrance_0.3_lena.png)
+
+### Dreamy Portrait
+
+Oil painting + vibrance for soft romantic look
+
+![Dreamy Portrait](output/oil-painting_2_vibrance_0.4_lena.png)
+
+### Cinematic Grade
+
+Duotone + exposure for film-like color
+
+![Cinematic Grade](output/duotone_20_40_80_255_200_150_exposure_0.2_lena.png)
+
+
+---
+
+<p align="center">
+  <i>Generated automatically by <code>zig build gallery</code></i><br>
+  <i>See <a href="../../README.md">README.md</a> for full documentation and usage examples</i>
+</p>

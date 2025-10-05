@@ -1,2 +1,8 @@
 .zig-cache/
 zig-out/
+*.PNG
+*.jpg
+*.jpeg
+*.gif
+*.bmp
+*.tiff

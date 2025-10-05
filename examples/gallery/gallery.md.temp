@@ -1,0 +1,30 @@
+# 🎨 MIMG Gallery
+
+Visual showcase of all available image processing modifiers.
+
+*All examples generated from the standard `lena.png` test image. For complete documentation, see the [main README](../../README.md).*
+
+---
+
+## Original Image
+
+![Original](lena.png)
+
+---
+
+## Individual Modifiers
+
+{{INDIVIDUAL_MODIFIERS}}
+
+---
+
+## Creative Combinations
+
+{{MODIFIER_COMBINATIONS}}
+
+---
+
+<p align="center">
+  <i>Generated automatically by <code>zig build gallery</code></i><br>
+  <i>See <a href="../../README.md">README.md</a> for full documentation and usage examples</i>
+</p>
