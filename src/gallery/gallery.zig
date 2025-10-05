@@ -29,7 +29,7 @@ fn writeExampleSection(file: std.fs.File, example: gallery_data.GalleryExample) 
     filename_len += 9;
 
     const filename = filename_part[0..filename_len];
-    const img_str = try std.fmt.bufPrint(&img_buf, "![{s}](examples/gallery/{s})\n\n", .{ example.name, filename });
+    const img_str = try std.fmt.bufPrint(&img_buf, "![{s}](output/{s})\n\n", .{ example.name, filename });
     try file.writeAll(img_str);
 }
 
@@ -39,8 +39,8 @@ pub fn main() !void {
 
     const cwd = std.fs.cwd();
 
-    // Open example.md for writing
-    const file = try cwd.createFile("example.md", .{});
+    // Open gallery.md for writing
+    const file = try cwd.createFile("examples/gallery/gallery.md", .{});
     defer file.close();
 
     // Write header
@@ -95,5 +95,5 @@ pub fn main() !void {
     try file.writeAll("| resize | Resize image | width height |\n");
     try file.writeAll("| crop | Crop image | x y width height |\n");
 
-    std.log.info("Generated example.md gallery", .{});
+    std.log.info("Generated examples/gallery/gallery.md gallery", .{});
 }

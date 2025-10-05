@@ -28,7 +28,7 @@ fn createGalleryCommand(b: *std.Build, exe: *std.Build.Step.Compile, example: an
 
     // Build full output path
     var full_path_buf: [256]u8 = undefined;
-    const full_path = std.fmt.bufPrint(&full_path_buf, "examples/gallery/{s}", .{output_filename}) catch unreachable;
+    const full_path = std.fmt.bufPrint(&full_path_buf, "examples/gallery/output/{s}", .{output_filename}) catch unreachable;
 
     gallery_cmd.addArg("--output");
     gallery_cmd.addArg(b.dupe(full_path));
@@ -69,21 +69,27 @@ pub fn build(b: *std.Build) void {
 
     const gallery_step = b.step("gallery", "Generate example gallery");
 
-    // Clean up old gallery files
-    const cleanup_cmd = b.addSystemCommand(&[_][]const u8{ "cmd", "/c", "if exist examples\\gallery rmdir /s /q examples\\gallery & mkdir examples\\gallery" });
+    // Clean up old gallery files and create output directory
+    const cleanup_cmd = b.addSystemCommand(&[_][]const u8{ "cmd", "/c", "if exist examples\\gallery\\output rmdir /s /q examples\\gallery\\output & mkdir examples\\gallery\\output" });
     gallery_step.dependOn(&cleanup_cmd.step);
+
+    // Ensure output directory exists before running commands
+    const ensure_output_cmd = b.addSystemCommand(&[_][]const u8{ "cmd", "/c", "if not exist examples\\gallery\\output mkdir examples\\gallery\\output" });
+    gallery_step.dependOn(&ensure_output_cmd.step);
 
     // Gallery generator executable
     const gallery_exe = b.addExecutable(.{
         .name = "gallery_generator",
-        .root_module = b.createModule(.{ .root_source_file = b.path("src/gallery.zig"), .target = target, .optimize = optimize }),
+        .root_module = b.createModule(.{ .root_source_file = b.path("src/gallery/gallery.zig"), .target = target, .optimize = optimize }),
     });
+
+    gallery_exe.step.dependOn(&cleanup_cmd.step);
 
     gallery_step.dependOn(&gallery_exe.step);
     gallery_step.dependOn(b.getInstallStep());
 
     // Import gallery data
-    const gallery_data = @import("src/gallery_data.zig");
+    const gallery_data = @import("src/gallery/gallery_data.zig");
 
     // Generate examples using shared data
     inline for (gallery_data.individual_modifiers) |modifier| {

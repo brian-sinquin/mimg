@@ -73,6 +73,10 @@ List modifiers without processing an image:
 zig build run -- --list-modifiers
 ```
 
+## Examples Gallery
+
+See [examples/gallery/gallery.md](examples/gallery/gallery.md) for a comprehensive gallery of all available modifiers with example images and usage details.
+
 ## Next steps
 
 - Expand the modifier library (rotation, filters, colour adjustments)
