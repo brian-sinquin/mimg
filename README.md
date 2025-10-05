@@ -1,6 +1,5 @@
-
 # mimg
-[![mimg](https://github.com/brian-sinquin/mimg/actions/workflows/dev.yml/badge.svg)](https://github.com/brian-sinquin/mimg/actions/workflows/dev.yml)
+[![mimg](https://github.com/brian-sinquin/mimg/actions/workflows/dev.yml/badge.svg)](https://github.com/brian-sinquin/mimg/actions/workflows/dev.yml) [![GitHub release (latest by date)](https://img.shields.io/github/v/release/brian-sinquin/mimg?label=version)](https://github.com/brian-sinquin/mimg/releases)
 ---
 
 A small CLI tool written in Zig for experimenting with image manipulation pipelines. It loads a source image, applies a chain of modifiers, and writes the processed result to disk.
