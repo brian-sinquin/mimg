@@ -1,4 +1,4 @@
-name: Development Continuous Deployment
+name: Development Build
 
 on:
   push:

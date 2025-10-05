@@ -1,4 +1,7 @@
+
 # mimg
+[![mimg](https://github.com/brian-sinquin/mimg/actions/workflows/dev.yml/badge.svg)](https://github.com/brian-sinquin/mimg/actions/workflows/dev.yml)
+---
 
 A small CLI tool written in Zig for experimenting with image manipulation pipelines. It loads a source image, applies a chain of modifiers, and writes the processed result to disk.
 

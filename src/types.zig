@@ -63,7 +63,7 @@ pub const Names = union(enum) {
     pair: struct { short: []const u8, long: []const u8 },
 };
 
-pub const Option = struct {
+pub const Argument = struct {
     names: Names,
     option_type: ArgType,
     param_types: []const type,

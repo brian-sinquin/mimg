@@ -8,7 +8,7 @@ pub const CliError = error{
     InvalidArguments,
 };
 
-const options = [_]types.Option{
+const options = [_]types.Argument{
     .{
         .names = .{ .single = "invert" },
         .option_type = types.ArgType.Modifier,
@@ -40,6 +40,78 @@ const options = [_]types.Option{
         .description = "Rotate the image clockwise by any angle (auto-resizes canvas)",
         .usage = "rotate <degrees>",
         .func = basic.rotateImage,
+    },
+    .{
+        .names = .{ .single = "flip" },
+        .option_type = types.ArgType.Modifier,
+        .param_types = &[_]type{[]const u8},
+        .description = "Flip the image horizontally or vertically",
+        .usage = "flip <horizontal|vertical>",
+        .func = basic.flipImage,
+    },
+    .{
+        .names = .{ .single = "grayscale" },
+        .option_type = types.ArgType.Modifier,
+        .param_types = &[_]type{},
+        .description = "Convert the image to grayscale",
+        .usage = "grayscale",
+        .func = basic.grayscaleImage,
+    },
+    .{
+        .names = .{ .single = "brightness" },
+        .option_type = types.ArgType.Modifier,
+        .param_types = &[_]type{i8},
+        .description = "Adjust image brightness",
+        .usage = "brightness <value (-128 to 127)>",
+        .func = basic.adjustBrightness,
+    },
+    .{
+        .names = .{ .single = "blur" },
+        .option_type = types.ArgType.Modifier,
+        .param_types = &[_]type{u8},
+        .description = "Apply a simple box blur",
+        .usage = "blur <kernel_size (odd)>",
+        .func = basic.blurImage,
+    },
+    .{
+        .names = .{ .single = "saturation" },
+        .option_type = types.ArgType.Modifier,
+        .param_types = &[_]type{f32},
+        .description = "Adjust color saturation",
+        .usage = "saturation <factor>",
+        .func = basic.adjustSaturation,
+    },
+    .{
+        .names = .{ .single = "contrast" },
+        .option_type = types.ArgType.Modifier,
+        .param_types = &[_]type{f32},
+        .description = "Adjust image contrast",
+        .usage = "contrast <factor>",
+        .func = basic.adjustContrast,
+    },
+    .{
+        .names = .{ .single = "gamma" },
+        .option_type = types.ArgType.Modifier,
+        .param_types = &[_]type{f32},
+        .description = "Apply gamma correction",
+        .usage = "gamma <value>",
+        .func = basic.adjustGamma,
+    },
+    .{
+        .names = .{ .single = "sepia" },
+        .option_type = types.ArgType.Modifier,
+        .param_types = &[_]type{},
+        .description = "Apply sepia tone effect",
+        .usage = "sepia",
+        .func = basic.applySepia,
+    },
+    .{
+        .names = .{ .single = "sharpen" },
+        .option_type = types.ArgType.Modifier,
+        .param_types = &[_]type{},
+        .description = "Sharpen the image",
+        .usage = "sharpen",
+        .func = basic.sharpenImage,
     },
     .{
         .names = .{ .pair = .{ .short = "-o", .long = "--output" } },
@@ -137,7 +209,10 @@ fn handleArgument(ctx: *types.Context, iterator: *std.process.ArgIterator, arg: 
                 reportParseError(arg, option, parse_err);
                 return CliError.InvalidArguments;
             };
-            try @call(.auto, option.func, .{ ctx, parsed });
+            @call(.auto, option.func, .{ ctx, parsed }) catch |modifier_err| {
+                std.log.err("Error applying modifier '{s}': {}", .{ arg, modifier_err });
+                return CliError.InvalidArguments;
+            };
             return true;
         }
     }
@@ -171,6 +246,7 @@ pub fn printHelp(ctx: *types.Context, args: anytype) !void {
 
 pub fn printImageInfo(ctx: *types.Context, args: anytype) !void {
     _ = args;
+    if (!ctx.verbose) return;
     std.log.info("Image Info:", .{});
     std.log.info(" - Width: {}", .{ctx.image.width});
     std.log.info(" - Height: {}", .{ctx.image.height});
@@ -181,7 +257,7 @@ pub fn getOptions() []const types.Option {
     return options[0..];
 }
 
-pub fn reportParseError(arg: []const u8, option: types.Option, err: types.ParseArgError) void {
+pub fn reportParseError(arg: []const u8, option: types.Argument, err: types.ParseArgError) void {
     const usage = if (option.usage.len > 0) option.usage else option.description;
     switch (err) {
         types.ParseArgError.MissingArgument => {

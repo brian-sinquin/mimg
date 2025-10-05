@@ -55,13 +55,13 @@ pub fn run() !void {
     if (filename) |path| {
         const image = try utils.loadImage(&ctx, path);
         ctx.setImage(image);
-        std.log.info("Successfully loaded image from '{s}'", .{path});
         if (ctx.verbose) {
+            std.log.info("Successfully loaded image from '{s}'", .{path});
             std.log.info("Image dimensions: {}x{}", .{ ctx.image.width, ctx.image.height });
+            try cli.printImageInfo(&ctx, .{});
         }
-        try cli.printImageInfo(&ctx, .{});
     } else {
-        std.log.info("No image provided. Displaying help.", .{});
+        std.log.err("No image file provided", .{});
         try cli.printHelp(&ctx, .{});
         return;
     }
@@ -77,5 +77,7 @@ pub fn run() !void {
         std.log.info("Saving image to '{s}'", .{output_path});
     }
     try utils.saveImageToPath(&ctx, output_path);
-    std.log.info("Image saved successfully.", .{});
+    if (ctx.verbose) {
+        std.log.info("Image saved successfully.", .{});
+    }
 }

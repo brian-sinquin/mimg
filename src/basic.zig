@@ -178,3 +178,316 @@ pub fn rotateImage(ctx: *Context, args: anytype) !void {
 
     ctx.setImage(rotated);
 }
+
+pub fn flipImage(ctx: *Context, args: anytype) !void {
+    const direction = args[0];
+    try ctx.image.convert(ctx.allocator, .rgba32);
+
+    if (ctx.verbose) {
+        std.log.info("Applying flip {s} modifier", .{direction});
+    }
+
+    const pixels = ctx.image.pixels.rgba32;
+    const width = ctx.image.width;
+    const height = ctx.image.height;
+
+    if (std.mem.eql(u8, direction, "horizontal")) {
+        for (0..height) |y| {
+            for (0..width / 2) |x| {
+                const left = y * width + x;
+                const right = y * width + (width - 1 - x);
+                std.mem.swap(img.color.Rgba32, &pixels[left], &pixels[right]);
+            }
+        }
+    } else if (std.mem.eql(u8, direction, "vertical")) {
+        for (0..height / 2) |y| {
+            for (0..width) |x| {
+                const top = y * width + x;
+                const bottom = (height - 1 - y) * width + x;
+                std.mem.swap(img.color.Rgba32, &pixels[top], &pixels[bottom]);
+            }
+        }
+    } else {
+        return error.InvalidDirection;
+    }
+}
+
+pub fn grayscaleImage(ctx: *Context, args: anytype) !void {
+    _ = args;
+    try ctx.image.convert(ctx.allocator, .rgba32);
+
+    if (ctx.verbose) {
+        std.log.info("Applying grayscale modifier", .{});
+    }
+
+    for (ctx.image.pixels.rgba32) |*pixel| {
+        const gray = @as(u8, @intFromFloat(0.299 * @as(f32, @floatFromInt(pixel.r)) + 0.587 * @as(f32, @floatFromInt(pixel.g)) + 0.114 * @as(f32, @floatFromInt(pixel.b))));
+        pixel.r = gray;
+        pixel.g = gray;
+        pixel.b = gray;
+    }
+}
+
+pub fn adjustBrightness(ctx: *Context, args: anytype) !void {
+    const delta = args[0];
+    try ctx.image.convert(ctx.allocator, .rgba32);
+
+    if (ctx.verbose) {
+        std.log.info("Applying brightness adjustment by {}", .{delta});
+    }
+
+    for (ctx.image.pixels.rgba32) |*pixel| {
+        pixel.r = @as(u8, @intCast(std.math.clamp(@as(i16, @intCast(pixel.r)) + delta, 0, 255)));
+        pixel.g = @as(u8, @intCast(std.math.clamp(@as(i16, @intCast(pixel.g)) + delta, 0, 255)));
+        pixel.b = @as(u8, @intCast(std.math.clamp(@as(i16, @intCast(pixel.b)) + delta, 0, 255)));
+    }
+}
+
+pub fn blurImage(ctx: *Context, args: anytype) !void {
+    const kernel_size = args[0];
+    if (kernel_size % 2 == 0) return error.EvenKernelSize;
+    try ctx.image.convert(ctx.allocator, .rgba32);
+
+    if (ctx.verbose) {
+        std.log.info("Applying blur with kernel size {}", .{kernel_size});
+    }
+
+    const pixels = ctx.image.pixels.rgba32;
+    const width = ctx.image.width;
+    const height = ctx.image.height;
+
+    // Create a temporary buffer
+    const temp_pixels = try ctx.allocator.alloc(img.color.Rgba32, width * height);
+    defer ctx.allocator.free(temp_pixels);
+    @memcpy(temp_pixels, pixels);
+
+    const half_kernel = kernel_size / 2;
+
+    for (0..height) |y| {
+        for (0..width) |x| {
+            var r_sum: u32 = 0;
+            var g_sum: u32 = 0;
+            var b_sum: u32 = 0;
+            var a_sum: u32 = 0;
+            var count: u32 = 0;
+
+            var ky: i32 = -@as(i32, @intCast(half_kernel));
+            while (ky <= @as(i32, @intCast(half_kernel))) : (ky += 1) {
+                var kx: i32 = -@as(i32, @intCast(half_kernel));
+                while (kx <= @as(i32, @intCast(half_kernel))) : (kx += 1) {
+                    const nx = @as(i32, @intCast(x)) + kx;
+                    const ny = @as(i32, @intCast(y)) + ky;
+                    if (nx >= 0 and nx < @as(i32, @intCast(width)) and ny >= 0 and ny < @as(i32, @intCast(height))) {
+                        const idx = @as(usize, @intCast(ny)) * width + @as(usize, @intCast(nx));
+                        const pixel = temp_pixels[idx];
+                        r_sum += pixel.r;
+                        g_sum += pixel.g;
+                        b_sum += pixel.b;
+                        a_sum += pixel.a;
+                        count += 1;
+                    }
+                }
+            }
+
+            const idx = y * width + x;
+            pixels[idx].r = @as(u8, @intCast(r_sum / count));
+            pixels[idx].g = @as(u8, @intCast(g_sum / count));
+            pixels[idx].b = @as(u8, @intCast(b_sum / count));
+            pixels[idx].a = @as(u8, @intCast(a_sum / count));
+        }
+    }
+}
+
+pub fn adjustSaturation(ctx: *Context, args: anytype) !void {
+    const factor = args[0];
+    try ctx.image.convert(ctx.allocator, .rgba32);
+
+    if (ctx.verbose) {
+        std.log.info("Applying saturation adjustment by {}", .{factor});
+    }
+
+    for (ctx.image.pixels.rgba32) |*pixel| {
+        var h: f32 = 0;
+        var s: f32 = 0;
+        var l: f32 = 0;
+        rgbToHsl(pixel.r, pixel.g, pixel.b, &h, &s, &l);
+        s = std.math.clamp(s * factor, 0.0, 1.0);
+        hslToRgb(h, s, l, &pixel.r, &pixel.g, &pixel.b);
+    }
+}
+
+pub fn adjustContrast(ctx: *Context, args: anytype) !void {
+    const factor = args[0];
+    try ctx.image.convert(ctx.allocator, .rgba32);
+
+    if (ctx.verbose) {
+        std.log.info("Applying contrast adjustment by {}", .{factor});
+    }
+
+    for (ctx.image.pixels.rgba32) |*pixel| {
+        pixel.r = @as(u8, @intFromFloat(std.math.clamp((@as(f32, @floatFromInt(pixel.r)) - 128.0) * factor + 128.0, 0.0, 255.0)));
+        pixel.g = @as(u8, @intFromFloat(std.math.clamp((@as(f32, @floatFromInt(pixel.g)) - 128.0) * factor + 128.0, 0.0, 255.0)));
+        pixel.b = @as(u8, @intFromFloat(std.math.clamp((@as(f32, @floatFromInt(pixel.b)) - 128.0) * factor + 128.0, 0.0, 255.0)));
+    }
+}
+
+pub fn adjustGamma(ctx: *Context, args: anytype) !void {
+    const gamma = args[0];
+    try ctx.image.convert(ctx.allocator, .rgba32);
+
+    if (ctx.verbose) {
+        std.log.info("Applying gamma correction with gamma {}", .{gamma});
+    }
+
+    const inv_gamma = 1.0 / gamma;
+
+    for (ctx.image.pixels.rgba32) |*pixel| {
+        pixel.r = @as(u8, @intFromFloat(255.0 * std.math.pow(f32, @as(f32, @floatFromInt(pixel.r)) / 255.0, inv_gamma)));
+        pixel.g = @as(u8, @intFromFloat(255.0 * std.math.pow(f32, @as(f32, @floatFromInt(pixel.g)) / 255.0, inv_gamma)));
+        pixel.b = @as(u8, @intFromFloat(255.0 * std.math.pow(f32, @as(f32, @floatFromInt(pixel.b)) / 255.0, inv_gamma)));
+    }
+}
+
+pub fn applySepia(ctx: *Context, args: anytype) !void {
+    _ = args;
+    try ctx.image.convert(ctx.allocator, .rgba32);
+
+    if (ctx.verbose) {
+        std.log.info("Applying sepia tone effect", .{});
+    }
+
+    for (ctx.image.pixels.rgba32) |*pixel| {
+        const r = @as(f32, @floatFromInt(pixel.r));
+        const g = @as(f32, @floatFromInt(pixel.g));
+        const b = @as(f32, @floatFromInt(pixel.b));
+
+        pixel.r = @as(u8, @intFromFloat(std.math.clamp(0.393 * r + 0.769 * g + 0.189 * b, 0.0, 255.0)));
+        pixel.g = @as(u8, @intFromFloat(std.math.clamp(0.349 * r + 0.686 * g + 0.168 * b, 0.0, 255.0)));
+        pixel.b = @as(u8, @intFromFloat(std.math.clamp(0.272 * r + 0.534 * g + 0.131 * b, 0.0, 255.0)));
+    }
+}
+
+pub fn sharpenImage(ctx: *Context, args: anytype) !void {
+    _ = args;
+    try ctx.image.convert(ctx.allocator, .rgba32);
+
+    if (ctx.verbose) {
+        std.log.info("Applying sharpen effect", .{});
+    }
+
+    const pixels = ctx.image.pixels.rgba32;
+    const width = ctx.image.width;
+    const height = ctx.image.height;
+
+    // Create a temporary buffer
+    const temp_pixels = try ctx.allocator.alloc(img.color.Rgba32, width * height);
+    defer ctx.allocator.free(temp_pixels);
+    @memcpy(temp_pixels, pixels);
+
+    // Simple sharpening using 3x3 kernel: center * 5 - orthogonal neighbors * 1
+    // Skip 1-pixel border since kernel needs all neighbors
+    for (1..height - 1) |y| {
+        for (1..width - 1) |x| {
+            var r_sum: i32 = 0;
+            var g_sum: i32 = 0;
+            var b_sum: i32 = 0;
+
+            // Apply sharpen kernel: [0, -1, 0; -1, 5, -1; 0, -1, 0]
+            // Center pixel
+            const center_idx = y * width + x;
+            r_sum += @as(i32, @intCast(temp_pixels[center_idx].r)) * 5;
+            g_sum += @as(i32, @intCast(temp_pixels[center_idx].g)) * 5;
+            b_sum += @as(i32, @intCast(temp_pixels[center_idx].b)) * 5;
+
+            // Orthogonal neighbors (up, down, left, right)
+            // Up
+            const up_idx = (y - 1) * width + x;
+            r_sum -= @as(i32, @intCast(temp_pixels[up_idx].r));
+            g_sum -= @as(i32, @intCast(temp_pixels[up_idx].g));
+            b_sum -= @as(i32, @intCast(temp_pixels[up_idx].b));
+
+            // Down
+            const down_idx = (y + 1) * width + x;
+            r_sum -= @as(i32, @intCast(temp_pixels[down_idx].r));
+            g_sum -= @as(i32, @intCast(temp_pixels[down_idx].g));
+            b_sum -= @as(i32, @intCast(temp_pixels[down_idx].b));
+
+            // Left
+            const left_idx = y * width + (x - 1);
+            r_sum -= @as(i32, @intCast(temp_pixels[left_idx].r));
+            g_sum -= @as(i32, @intCast(temp_pixels[left_idx].g));
+            b_sum -= @as(i32, @intCast(temp_pixels[left_idx].b));
+
+            // Right
+            const right_idx = y * width + (x + 1);
+            r_sum -= @as(i32, @intCast(temp_pixels[right_idx].r));
+            g_sum -= @as(i32, @intCast(temp_pixels[right_idx].g));
+            b_sum -= @as(i32, @intCast(temp_pixels[right_idx].b));
+
+            const idx = y * width + x;
+            pixels[idx].r = @as(u8, @intCast(std.math.clamp(r_sum, 0, 255)));
+            pixels[idx].g = @as(u8, @intCast(std.math.clamp(g_sum, 0, 255)));
+            pixels[idx].b = @as(u8, @intCast(std.math.clamp(b_sum, 0, 255)));
+        }
+    }
+}
+
+fn rgbToHsl(r: u8, g: u8, b: u8, h: *f32, s: *f32, l: *f32) void {
+    const rf = @as(f32, @floatFromInt(r)) / 255.0;
+    const gf = @as(f32, @floatFromInt(g)) / 255.0;
+    const bf = @as(f32, @floatFromInt(b)) / 255.0;
+
+    const max = @max(rf, @max(gf, bf));
+    const min = @min(rf, @min(gf, bf));
+    const delta = max - min;
+
+    l.* = (max + min) / 2.0;
+
+    if (delta == 0) {
+        h.* = 0;
+        s.* = 0;
+    } else {
+        s.* = if (l.* < 0.5) delta / (max + min) else delta / (2.0 - max - min);
+
+        if (max == rf) {
+            h.* = (gf - bf) / delta;
+        } else if (max == gf) {
+            h.* = 2.0 + (bf - rf) / delta;
+        } else {
+            h.* = 4.0 + (rf - gf) / delta;
+        }
+        h.* /= 6.0;
+        if (h.* < 0) h.* += 1.0;
+    }
+}
+
+fn hslToRgb(h: f32, s: f32, l: f32, r: *u8, g: *u8, b: *u8) void {
+    if (s == 0) {
+        const val = @as(u8, @intFromFloat(l * 255.0));
+        r.* = val;
+        g.* = val;
+        b.* = val;
+    } else {
+        const q = if (l < 0.5) l * (1.0 + s) else l + s - l * s;
+        const p = 2.0 * l - q;
+
+        const hk = h * 6.0;
+        const tr = hk + 2.0 / 3.0;
+        const tg = hk;
+        const tb = hk - 2.0 / 3.0;
+
+        r.* = @as(u8, @intFromFloat(hueToRgb(p, q, tr) * 255.0));
+        g.* = @as(u8, @intFromFloat(hueToRgb(p, q, tg) * 255.0));
+        b.* = @as(u8, @intFromFloat(hueToRgb(p, q, tb) * 255.0));
+    }
+}
+
+fn hueToRgb(p: f32, q: f32, t: f32) f32 {
+    var tt = t;
+    if (tt < 0) tt += 1.0;
+    if (tt > 1) tt -= 1.0;
+    if (tt < 1.0 / 6.0) return p + (q - p) * 6.0 * tt;
+    if (tt < 1.0 / 2.0) return q;
+    if (tt < 2.0 / 3.0) return p + (q - p) * (2.0 / 3.0 - tt) * 6.0;
+    return p;
+}
