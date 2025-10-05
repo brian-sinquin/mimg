@@ -8,7 +8,7 @@ All examples are generated from the original `lena.png` image.
 
 ## Original Image
 
-![Original](lena.png)
+![Original](examples/lena.png)
 
 ## Individual Modifiers
 

@@ -70,12 +70,22 @@ pub fn build(b: *std.Build) void {
     const gallery_step = b.step("gallery", "Generate example gallery");
 
     // Clean up old gallery files and create output directory
-    const cleanup_cmd = b.addSystemCommand(&[_][]const u8{ "cmd", "/c", "if exist examples\\gallery\\output rmdir /s /q examples\\gallery\\output & mkdir examples\\gallery\\output" });
-    gallery_step.dependOn(&cleanup_cmd.step);
+    const cleanup_step = b.step("cleanup_gallery_output", "Clean up gallery output directory");
+    cleanup_step.makeFn = struct {
+        pub fn make(_: *std.Build.Step, options: std.Build.Step.MakeOptions) !void {
+            _ = options;
+            const fs = std.fs;
+            const cwd = fs.cwd();
+            const output_path = "examples/gallery/output";
+            // Try to delete the directory if it exists
+            _ = cwd.deleteTree(output_path) catch {};
+            // Recreate the directory
+            try cwd.makePath(output_path);
+        }
+    }.make;
+    gallery_step.dependOn(cleanup_step);
 
-    // Ensure output directory exists before running commands
-    const ensure_output_cmd = b.addSystemCommand(&[_][]const u8{ "cmd", "/c", "if not exist examples\\gallery\\output mkdir examples\\gallery\\output" });
-    gallery_step.dependOn(&ensure_output_cmd.step);
+    // No need for a separate ensure_output_cmd, as the above step handles both cleanup and creation
 
     // Gallery generator executable
     const gallery_exe = b.addExecutable(.{
@@ -83,7 +93,7 @@ pub fn build(b: *std.Build) void {
         .root_module = b.createModule(.{ .root_source_file = b.path("src/gallery/gallery.zig"), .target = target, .optimize = optimize }),
     });
 
-    gallery_exe.step.dependOn(&cleanup_cmd.step);
+    gallery_exe.step.dependOn(cleanup_step);
 
     gallery_step.dependOn(&gallery_exe.step);
     gallery_step.dependOn(b.getInstallStep());
