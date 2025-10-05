@@ -3,7 +3,7 @@ const std = @import("std");
 // Helper function to create gallery command for an example
 fn createGalleryCommand(b: *std.Build, exe: *std.Build.Step.Compile, example: anytype, gallery_step: *std.Build.Step) void {
     const gallery_cmd = b.addRunArtifact(exe);
-    gallery_cmd.addFileArg(b.path("examples/lena.png"));
+    gallery_cmd.addFileArg(b.path("examples/gallery/lena.png"));
 
     for (example.args) |arg| {
         gallery_cmd.addArg(arg);
