@@ -46,8 +46,8 @@ pub fn build(b: *std.Build) void {
     const target_name = b.option([]const u8, "target-name", "Target name for binary") orelse "unknown";
 
     const exe = b.addExecutable(.{
-        .name = b.fmt("{s}-{s}-{s}", .{ "mimg", release_version, target_name }), // Updated: Include version and target in binary name
-        .root_module = b.createModule(.{ 
+        .name = b.fmt("{s}-v{s}-{s}", .{ "mimg", release_version, target_name }), // Updated: Include version and target in binary name
+        .root_module = b.createModule(.{
             .root_source_file = b.path("src/main.zig"),
             .target = target,
             .optimize = optimize,
