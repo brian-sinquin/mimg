@@ -42,9 +42,16 @@ pub fn build(b: *std.Build) void {
 
     const documentation = b.option(bool, "docs", "Generate documentation") orelse false;
 
+    const release_version = std.process.getEnvVarOwned(b.allocator, "RELEASE_VERSION") catch "dev";
+    const target_name = b.option([]const u8, "target-name", "Target name for binary") orelse "unknown";
+
     const exe = b.addExecutable(.{
-        .name = "mimg",
-        .root_module = b.createModule(.{ .root_source_file = b.path("src/main.zig"), .target = target, .optimize = optimize }),
+        .name = b.fmt("{s}-{s}-{s}", .{ "mimg", release_version, target_name }), // Updated: Include version and target in binary name
+        .root_module = b.createModule(.{ 
+            .root_source_file = b.path("src/main.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
     });
 
     const zigimg_dependency = b.dependency("zigimg", .{
