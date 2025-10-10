@@ -4,7 +4,8 @@
 # CORE:
 
 Todo:
-  ☐ Gather input image from url
+  ✔ Gather input image from url @done(25-10-10 23:24)
+  ☐ Check first arg is a file path then assume url, else error.
   ☐ Load batch of images using wildcards -- Multithreading
   ☐ Use preset files by dispatching each line's chain on the input (single file or batch)
   ☐ Better help message

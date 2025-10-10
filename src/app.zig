@@ -1,11 +1,20 @@
 const std = @import("std");
 const types = @import("types.zig");
 const utils = @import("utils.zig");
+const img = @import("zigimg");
 const cli = @import("cli.zig");
 
 pub fn run() !void {
     const allocator = std.heap.page_allocator;
     var args_iter = try std.process.ArgIterator.initWithAllocator(allocator);
+
+    // TODO: clean this code
+    // const image_data = try utils.downloadFileToMemory(allocator, "https://onlinejpgtools.com/images/examples-onlinejpgtools/mountain-scene.jpg");
+
+    // var image1 = try img.Image.fromMemory(allocator, image_data[0..]);
+    // defer image1.deinit(allocator);
+    // try utils.saveImageToPath(image1, allocator, "dl.jpg");
+
     defer args_iter.deinit();
 
     // Skip executable name
@@ -76,7 +85,7 @@ pub fn run() !void {
     if (ctx.verbose) {
         std.log.info("Saving image to '{s}'", .{output_path});
     }
-    try utils.saveImageToPath(&ctx, output_path);
+    try utils.saveImage(&ctx, output_path);
     if (ctx.verbose) {
         std.log.info("Image saved successfully.", .{});
     }

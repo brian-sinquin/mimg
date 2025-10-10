@@ -1,6 +1,7 @@
 const types = @import("types.zig");
 const std = @import("std");
 const img = @import("zigimg");
+const http = std.http;
 
 pub const output_path_buffer_size = 4096;
 
@@ -15,12 +16,12 @@ pub fn loadImage(ctx: *types.Context, path: []const u8) !img.Image {
 pub fn saveImage(ctx: *types.Context, path: []const u8) !void {
     var buffer: [output_path_buffer_size]u8 = undefined;
     const resolved = try resolveOutputPath(ctx, path, &buffer);
-    try saveImageToPath(ctx, resolved);
+    try saveImageToPath(ctx.image, ctx.allocator, resolved);
 }
 
-pub fn saveImageToPath(ctx: *types.Context, resolved_path: []const u8) !void {
+pub fn saveImageToPath(image: img.Image, allocator: std.mem.Allocator, resolved_path: []const u8) !void {
     var write_buffer: [img.io.DEFAULT_BUFFER_SIZE]u8 = undefined;
-    try ctx.image.writeToFilePath(ctx.allocator, resolved_path, write_buffer[0..], .{ .png = .{} });
+    try image.writeToFilePath(allocator, resolved_path, write_buffer[0..], .{ .png = .{} });
 }
 
 pub fn resolveOutputPath(ctx: *types.Context, filename: []const u8, buffer: []u8) ![]const u8 {
@@ -76,4 +77,22 @@ pub fn parseNextArg(comptime T: type, it: *std.process.ArgIterator) types.ParseA
         },
         else => @compileError("Unsupported parameter type in parseNextArg"),
     };
+}
+
+/// Downloads the content of a file from a URL into memory (does not write to disk).
+pub fn downloadFileToMemory(allocator: std.mem.Allocator, url: []const u8) ![]u8 {
+    var client = std.http.Client{ .allocator = allocator };
+    defer client.deinit();
+
+    var allocating = std.Io.Writer.Allocating.init(allocator);
+    defer allocating.deinit();
+
+    const result = try client.fetch(.{
+        .location = .{ .url = url },
+        .response_writer = &allocating.writer,
+    });
+
+    if (result.status != .ok) return error.HttpError;
+
+    return allocating.toOwnedSlice();
 }
