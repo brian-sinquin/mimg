@@ -1,14 +1,16 @@
 
-# Version 0.1.3
+# Version 0.1.2
 
 # CORE:
 
 Todo:
   ✔ Gather input image from url @done(25-10-10 23:24)
   ✔ Check first arg is a file path then assume url, else error. @done(25-10-12 12:13)
-  ☐ Load batch of images using wildcards -- Multithreading
-  ☐ Use preset files by dispatching each line's chain on the input (single file or batch)
-  ☐ Better help message
+  ✔ Load batch of images using wildcards -- Multithreading @done(25-10-12 18:49)
+  ✔ Use preset files by dispatching each line's chain on the input (single file or batch) @done(25-10-12 22:01)
+  ✔ Better help message @done(25-10-12 22:01)
+  ✔ Improve error handling @done(25-10-12 20:01)
+  ✔ Add unit tests @done(25-10-12 20:01)
   ✔ File extension conversion @done(25-10-12 12:13)
 
 
