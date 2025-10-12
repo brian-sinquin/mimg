@@ -23,7 +23,7 @@ pub fn build(b: *std.Build) void {
     }
 
     // Setup gallery generation
-    _ = build_gallery.setupGallery(b, target, optimize, exe);
+    // _ = build_gallery.setupGallery(b, target, optimize, exe);
 
     if (documentation) {
         std.log.warn("Documentation generation is not yet supported on this Zig release.", .{});

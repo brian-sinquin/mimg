@@ -3,13 +3,31 @@ const std = @import("std");
 const Context = @import("types.zig").Context;
 const math = std.math;
 
+fn convertToRgba32(ctx: *Context) !void {
+    try ctx.image.convert(ctx.allocator, .rgba32);
+}
+
+fn logVerbose(ctx: *Context, comptime fmt: []const u8, args: anytype) void {
+    if (ctx.verbose) {
+        std.log.info(fmt, args);
+    }
+}
+
+fn createTempBuffer(ctx: *Context, pixels: []img.color.Rgba32) ![]img.color.Rgba32 {
+    const temp_pixels = try ctx.allocator.alloc(img.color.Rgba32, pixels.len);
+    @memcpy(temp_pixels, pixels);
+    return temp_pixels;
+}
+
+fn clampPixel(value: anytype) @TypeOf(value) {
+    return std.math.clamp(value, 0, 255);
+}
+
 pub fn invertColors(ctx: *Context, args: anytype) !void {
     _ = args;
-    try ctx.image.convert(ctx.allocator, .rgba32);
+    try convertToRgba32(ctx);
 
-    if (ctx.verbose) {
-        std.log.info("Applying invert modifier", .{});
-    }
+    logVerbose(ctx, "Applying invert modifier", .{});
 
     for (ctx.image.pixels.rgba32) |*pixel| {
         const r = pixel.r;
@@ -26,14 +44,9 @@ pub fn resizeImage(ctx: *Context, args: anytype) !void {
     // Simple nearest-neighbor resize implementation
     const new_width = args[0];
     const new_height = args[1];
-    try ctx.image.convert(ctx.allocator, .rgba32);
+    try convertToRgba32(ctx);
 
-    if (ctx.verbose) {
-        std.log.info(
-            "Applying resize modifier to {}x{}",
-            .{ new_width, new_height },
-        );
-    }
+    logVerbose(ctx, "Applying resize modifier to {}x{}", .{ new_width, new_height });
 
     const old_width = ctx.image.width;
     const old_height = ctx.image.height;
@@ -64,14 +77,9 @@ pub fn cropImage(ctx: *Context, args: anytype) !void {
     const y = args[1];
     const w = args[2];
     const h = args[3];
-    try ctx.image.convert(ctx.allocator, .rgba32);
+    try convertToRgba32(ctx);
 
-    if (ctx.verbose) {
-        std.log.info(
-            "Applying crop modifier at ({}, {}) size {}x{}",
-            .{ x, y, w, h },
-        );
-    }
+    logVerbose(ctx, "Applying crop modifier at ({}, {}) size {}x{}", .{ x, y, w, h });
 
     const old_width = ctx.image.width;
     const old_pixels = ctx.image.pixels.rgba32;
@@ -104,7 +112,7 @@ pub fn rotateImage(ctx: *Context, args: anytype) !void {
         return;
     }
 
-    try ctx.image.convert(ctx.allocator, .rgba32);
+    try convertToRgba32(ctx);
 
     const old_width = ctx.image.width;
     const old_height = ctx.image.height;
@@ -181,11 +189,9 @@ pub fn rotateImage(ctx: *Context, args: anytype) !void {
 
 pub fn flipImage(ctx: *Context, args: anytype) !void {
     const direction = args[0];
-    try ctx.image.convert(ctx.allocator, .rgba32);
+    try convertToRgba32(ctx);
 
-    if (ctx.verbose) {
-        std.log.info("Applying flip {s} modifier", .{direction});
-    }
+    logVerbose(ctx, "Applying flip {s} modifier", .{direction});
 
     const pixels = ctx.image.pixels.rgba32;
     const width = ctx.image.width;
@@ -214,11 +220,9 @@ pub fn flipImage(ctx: *Context, args: anytype) !void {
 
 pub fn grayscaleImage(ctx: *Context, args: anytype) !void {
     _ = args;
-    try ctx.image.convert(ctx.allocator, .rgba32);
+    try convertToRgba32(ctx);
 
-    if (ctx.verbose) {
-        std.log.info("Applying grayscale modifier", .{});
-    }
+    logVerbose(ctx, "Applying grayscale modifier", .{});
 
     for (ctx.image.pixels.rgba32) |*pixel| {
         const gray = @as(u8, @intFromFloat(0.299 * @as(f32, @floatFromInt(pixel.r)) + 0.587 * @as(f32, @floatFromInt(pixel.g)) + 0.114 * @as(f32, @floatFromInt(pixel.b))));
@@ -230,11 +234,9 @@ pub fn grayscaleImage(ctx: *Context, args: anytype) !void {
 
 pub fn adjustBrightness(ctx: *Context, args: anytype) !void {
     const delta = args[0];
-    try ctx.image.convert(ctx.allocator, .rgba32);
+    try convertToRgba32(ctx);
 
-    if (ctx.verbose) {
-        std.log.info("Applying brightness adjustment by {}", .{delta});
-    }
+    logVerbose(ctx, "Applying brightness adjustment by {}", .{delta});
 
     for (ctx.image.pixels.rgba32) |*pixel| {
         pixel.r = @as(u8, @intCast(std.math.clamp(@as(i16, @intCast(pixel.r)) + delta, 0, 255)));
@@ -246,20 +248,17 @@ pub fn adjustBrightness(ctx: *Context, args: anytype) !void {
 pub fn blurImage(ctx: *Context, args: anytype) !void {
     const kernel_size = args[0];
     if (kernel_size % 2 == 0) return error.EvenKernelSize;
-    try ctx.image.convert(ctx.allocator, .rgba32);
+    try convertToRgba32(ctx);
 
-    if (ctx.verbose) {
-        std.log.info("Applying blur with kernel size {}", .{kernel_size});
-    }
+    logVerbose(ctx, "Applying blur with kernel size {}", .{kernel_size});
 
     const pixels = ctx.image.pixels.rgba32;
     const width = ctx.image.width;
     const height = ctx.image.height;
 
     // Create a temporary buffer
-    const temp_pixels = try ctx.allocator.alloc(img.color.Rgba32, width * height);
+    const temp_pixels = try createTempBuffer(ctx, pixels);
     defer ctx.allocator.free(temp_pixels);
-    @memcpy(temp_pixels, pixels);
 
     const half_kernel = kernel_size / 2;
 
@@ -300,11 +299,9 @@ pub fn blurImage(ctx: *Context, args: anytype) !void {
 
 pub fn adjustSaturation(ctx: *Context, args: anytype) !void {
     const factor = args[0];
-    try ctx.image.convert(ctx.allocator, .rgba32);
+    try convertToRgba32(ctx);
 
-    if (ctx.verbose) {
-        std.log.info("Applying saturation adjustment by {}", .{factor});
-    }
+    logVerbose(ctx, "Applying saturation adjustment by {}", .{factor});
 
     for (ctx.image.pixels.rgba32) |*pixel| {
         const rf = @as(f32, @floatFromInt(pixel.r));
@@ -327,11 +324,9 @@ pub fn adjustSaturation(ctx: *Context, args: anytype) !void {
 
 pub fn adjustContrast(ctx: *Context, args: anytype) !void {
     const factor = args[0];
-    try ctx.image.convert(ctx.allocator, .rgba32);
+    try convertToRgba32(ctx);
 
-    if (ctx.verbose) {
-        std.log.info("Applying contrast adjustment by {}", .{factor});
-    }
+    logVerbose(ctx, "Applying contrast adjustment by {}", .{factor});
 
     for (ctx.image.pixels.rgba32) |*pixel| {
         pixel.r = @as(u8, @intFromFloat(std.math.clamp((@as(f32, @floatFromInt(pixel.r)) - 128.0) * factor + 128.0, 0.0, 255.0)));
@@ -342,11 +337,9 @@ pub fn adjustContrast(ctx: *Context, args: anytype) !void {
 
 pub fn adjustGamma(ctx: *Context, args: anytype) !void {
     const gamma = args[0];
-    try ctx.image.convert(ctx.allocator, .rgba32);
+    try convertToRgba32(ctx);
 
-    if (ctx.verbose) {
-        std.log.info("Applying gamma correction with gamma {}", .{gamma});
-    }
+    logVerbose(ctx, "Applying gamma correction with gamma {}", .{gamma});
 
     const inv_gamma = 1.0 / gamma;
 
@@ -359,11 +352,9 @@ pub fn adjustGamma(ctx: *Context, args: anytype) !void {
 
 pub fn applySepia(ctx: *Context, args: anytype) !void {
     _ = args;
-    try ctx.image.convert(ctx.allocator, .rgba32);
+    try convertToRgba32(ctx);
 
-    if (ctx.verbose) {
-        std.log.info("Applying sepia tone effect", .{});
-    }
+    logVerbose(ctx, "Applying sepia tone effect", .{});
 
     for (ctx.image.pixels.rgba32) |*pixel| {
         const r = @as(f32, @floatFromInt(pixel.r));
@@ -378,20 +369,17 @@ pub fn applySepia(ctx: *Context, args: anytype) !void {
 
 pub fn sharpenImage(ctx: *Context, args: anytype) !void {
     _ = args;
-    try ctx.image.convert(ctx.allocator, .rgba32);
+    try convertToRgba32(ctx);
 
-    if (ctx.verbose) {
-        std.log.info("Applying sharpen effect", .{});
-    }
+    logVerbose(ctx, "Applying sharpen effect", .{});
 
     const pixels = ctx.image.pixels.rgba32;
     const width = ctx.image.width;
     const height = ctx.image.height;
 
     // Create a temporary buffer
-    const temp_pixels = try ctx.allocator.alloc(img.color.Rgba32, width * height);
+    const temp_pixels = try createTempBuffer(ctx, pixels);
     defer ctx.allocator.free(temp_pixels);
-    @memcpy(temp_pixels, pixels);
 
     // Simple sharpening using 3x3 kernel: center * 5 - orthogonal neighbors * 1
     // Skip 1-pixel border since kernel needs all neighbors
@@ -503,20 +491,17 @@ fn hueToRgb(p: f32, q: f32, t: f32) f32 {
 
 pub fn gaussianBlurImage(ctx: *Context, args: anytype) !void {
     const sigma = args[0];
-    try ctx.image.convert(ctx.allocator, .rgba32);
+    try convertToRgba32(ctx);
 
-    if (ctx.verbose) {
-        std.log.info("Applying Gaussian blur with sigma {d:.2}", .{sigma});
-    }
+    logVerbose(ctx, "Applying Gaussian blur with sigma {d:.2}", .{sigma});
 
     const pixels = ctx.image.pixels.rgba32;
     const width = ctx.image.width;
     const height = ctx.image.height;
 
     // Create a temporary buffer
-    const temp_pixels = try ctx.allocator.alloc(img.color.Rgba32, width * height);
+    const temp_pixels = try createTempBuffer(ctx, pixels);
     defer ctx.allocator.free(temp_pixels);
-    @memcpy(temp_pixels, pixels);
 
     // Calculate kernel size (should be odd and cover ~3*sigma)
     const kernel_radius = @as(usize, @intFromFloat(@ceil(sigma * 3.0)));
@@ -579,20 +564,17 @@ pub fn gaussianBlurImage(ctx: *Context, args: anytype) !void {
 
 pub fn embossImage(ctx: *Context, args: anytype) !void {
     _ = args;
-    try ctx.image.convert(ctx.allocator, .rgba32);
+    try convertToRgba32(ctx);
 
-    if (ctx.verbose) {
-        std.log.info("Applying emboss effect", .{});
-    }
+    logVerbose(ctx, "Applying emboss effect", .{});
 
     const pixels = ctx.image.pixels.rgba32;
     const width = ctx.image.width;
     const height = ctx.image.height;
 
     // Create a temporary buffer
-    const temp_pixels = try ctx.allocator.alloc(img.color.Rgba32, width * height);
+    const temp_pixels = try createTempBuffer(ctx, pixels);
     defer ctx.allocator.free(temp_pixels);
-    @memcpy(temp_pixels, pixels);
 
     // Emboss kernel: [-2, -1, 0; -1, 1, 1; 0, 1, 2]
     // Process all pixels, using edge replication for border pixels
@@ -648,11 +630,9 @@ pub fn embossImage(ctx: *Context, args: anytype) !void {
 
 pub fn vignetteImage(ctx: *Context, args: anytype) !void {
     const intensity = args[0];
-    try ctx.image.convert(ctx.allocator, .rgba32);
+    try convertToRgba32(ctx);
 
-    if (ctx.verbose) {
-        std.log.info("Applying vignette effect with intensity {d:.2}", .{intensity});
-    }
+    logVerbose(ctx, "Applying vignette effect with intensity {d:.2}", .{intensity});
 
     const pixels = ctx.image.pixels.rgba32;
     const width = ctx.image.width;
@@ -682,11 +662,9 @@ pub fn vignetteImage(ctx: *Context, args: anytype) !void {
 
 pub fn posterizeImage(ctx: *Context, args: anytype) !void {
     const levels = args[0];
-    try ctx.image.convert(ctx.allocator, .rgba32);
+    try convertToRgba32(ctx);
 
-    if (ctx.verbose) {
-        std.log.info("Applying posterize effect with {d} levels", .{levels});
-    }
+    logVerbose(ctx, "Applying posterize effect with {d} levels", .{levels});
 
     const pixels = ctx.image.pixels.rgba32;
     const width = ctx.image.width;
@@ -712,11 +690,9 @@ pub fn posterizeImage(ctx: *Context, args: anytype) !void {
 
 pub fn hueShiftImage(ctx: *Context, args: anytype) !void {
     const hue_shift = args[0];
-    try ctx.image.convert(ctx.allocator, .rgba32);
+    try convertToRgba32(ctx);
 
-    if (ctx.verbose) {
-        std.log.info("Applying hue shift by {d:.2} degrees", .{hue_shift});
-    }
+    logVerbose(ctx, "Applying hue shift by {d:.2} degrees", .{hue_shift});
 
     const pixels = ctx.image.pixels.rgba32;
     const width = ctx.image.width;
@@ -760,20 +736,17 @@ pub fn hueShiftImage(ctx: *Context, args: anytype) !void {
 
 pub fn medianFilterImage(ctx: *Context, args: anytype) !void {
     const kernel_size = args[0];
-    try ctx.image.convert(ctx.allocator, .rgba32);
+    try convertToRgba32(ctx);
 
-    if (ctx.verbose) {
-        std.log.info("Applying median filter with kernel size {d}", .{kernel_size});
-    }
+    logVerbose(ctx, "Applying median filter with kernel size {d}", .{kernel_size});
 
     const pixels = ctx.image.pixels.rgba32;
     const width = ctx.image.width;
     const height = ctx.image.height;
 
     // Create a temporary buffer
-    const temp_pixels = try ctx.allocator.alloc(img.color.Rgba32, width * height);
+    const temp_pixels = try createTempBuffer(ctx, pixels);
     defer ctx.allocator.free(temp_pixels);
-    @memcpy(temp_pixels, pixels);
 
     const radius = kernel_size / 2;
     const window_size = kernel_size * kernel_size;
@@ -821,11 +794,9 @@ pub fn medianFilterImage(ctx: *Context, args: anytype) !void {
 
 pub fn thresholdImage(ctx: *Context, args: anytype) !void {
     const threshold = args[0];
-    try ctx.image.convert(ctx.allocator, .rgba32);
+    try convertToRgba32(ctx);
 
-    if (ctx.verbose) {
-        std.log.info("Applying threshold effect at {d}", .{threshold});
-    }
+    logVerbose(ctx, "Applying threshold effect at {d}", .{threshold});
 
     const pixels = ctx.image.pixels.rgba32;
     const width = ctx.image.width;
@@ -852,11 +823,9 @@ pub fn thresholdImage(ctx: *Context, args: anytype) !void {
 
 pub fn solarizeImage(ctx: *Context, args: anytype) !void {
     const threshold = args[0];
-    try ctx.image.convert(ctx.allocator, .rgba32);
+    try convertToRgba32(ctx);
 
-    if (ctx.verbose) {
-        std.log.info("Applying solarize effect at threshold {d}", .{threshold});
-    }
+    logVerbose(ctx, "Applying solarize effect at threshold {d}", .{threshold});
 
     const pixels = ctx.image.pixels.rgba32;
 
@@ -869,20 +838,17 @@ pub fn solarizeImage(ctx: *Context, args: anytype) !void {
 
 pub fn edgeDetectImage(ctx: *Context, args: anytype) !void {
     _ = args;
-    try ctx.image.convert(ctx.allocator, .rgba32);
+    try convertToRgba32(ctx);
 
-    if (ctx.verbose) {
-        std.log.info("Applying edge detection (Sobel operator)", .{});
-    }
+    logVerbose(ctx, "Applying edge detection (Sobel operator)", .{});
 
     const pixels = ctx.image.pixels.rgba32;
     const width = ctx.image.width;
     const height = ctx.image.height;
 
     // Create a temporary buffer
-    const temp_pixels = try ctx.allocator.alloc(img.color.Rgba32, width * height);
+    const temp_pixels = try createTempBuffer(ctx, pixels);
     defer ctx.allocator.free(temp_pixels);
-    @memcpy(temp_pixels, pixels);
 
     // Sobel kernels
     const gx = [_][3]i32{
@@ -946,11 +912,9 @@ pub fn edgeDetectImage(ctx: *Context, args: anytype) !void {
 
 pub fn pixelateImage(ctx: *Context, args: anytype) !void {
     const block_size = args[0];
-    try ctx.image.convert(ctx.allocator, .rgba32);
+    try convertToRgba32(ctx);
 
-    if (ctx.verbose) {
-        std.log.info("Applying pixelate effect with block size {d}", .{block_size});
-    }
+    logVerbose(ctx, "Applying pixelate effect with block size {d}", .{block_size});
 
     const pixels = ctx.image.pixels.rgba32;
     const width = ctx.image.width;
@@ -999,11 +963,9 @@ pub fn pixelateImage(ctx: *Context, args: anytype) !void {
 
 pub fn addNoiseImage(ctx: *Context, args: anytype) !void {
     const amount = args[0];
-    try ctx.image.convert(ctx.allocator, .rgba32);
+    try convertToRgba32(ctx);
 
-    if (ctx.verbose) {
-        std.log.info("Adding noise with amount {d:.2}", .{amount});
-    }
+    logVerbose(ctx, "Adding noise with amount {d:.2}", .{amount});
 
     const pixels = ctx.image.pixels.rgba32;
     const width = ctx.image.width;
@@ -1035,11 +997,9 @@ pub fn addNoiseImage(ctx: *Context, args: anytype) !void {
 
 pub fn adjustExposure(ctx: *Context, args: anytype) !void {
     const exposure = args[0];
-    try ctx.image.convert(ctx.allocator, .rgba32);
+    try convertToRgba32(ctx);
 
-    if (ctx.verbose) {
-        std.log.info("Applying exposure adjustment by {d:.2}", .{exposure});
-    }
+    logVerbose(ctx, "Applying exposure adjustment by {d:.2}", .{exposure});
 
     const pixels = ctx.image.pixels.rgba32;
 
@@ -1059,11 +1019,9 @@ pub fn adjustExposure(ctx: *Context, args: anytype) !void {
 
 pub fn adjustVibrance(ctx: *Context, args: anytype) !void {
     const factor = args[0];
-    try ctx.image.convert(ctx.allocator, .rgba32);
+    try convertToRgba32(ctx);
 
-    if (ctx.verbose) {
-        std.log.info("Applying vibrance adjustment by {d:.2}", .{factor});
-    }
+    logVerbose(ctx, "Applying vibrance adjustment by {d:.2}", .{factor});
 
     const pixels = ctx.image.pixels.rgba32;
 
@@ -1095,11 +1053,9 @@ pub fn adjustVibrance(ctx: *Context, args: anytype) !void {
 
 pub fn equalizeImage(ctx: *Context, args: anytype) !void {
     _ = args;
-    try ctx.image.convert(ctx.allocator, .rgba32);
+    try convertToRgba32(ctx);
 
-    if (ctx.verbose) {
-        std.log.info("Applying histogram equalization", .{});
-    }
+    logVerbose(ctx, "Applying histogram equalization", .{});
 
     const pixels = ctx.image.pixels.rgba32;
     const total_pixels = pixels.len;
@@ -1162,11 +1118,9 @@ pub fn colorizeImage(ctx: *Context, args: anytype) !void {
     const tint_g = args[1];
     const tint_b = args[2];
     const intensity = args[3];
-    try ctx.image.convert(ctx.allocator, .rgba32);
+    try convertToRgba32(ctx);
 
-    if (ctx.verbose) {
-        std.log.info("Applying colorize with RGB({d}, {d}, {d}) intensity {d:.2}", .{ tint_r, tint_g, tint_b, intensity });
-    }
+    logVerbose(ctx, "Applying colorize with RGB({d}, {d}, {d}) intensity {d:.2}", .{ tint_r, tint_g, tint_b, intensity });
 
     const pixels = ctx.image.pixels.rgba32;
 
@@ -1205,11 +1159,9 @@ pub fn duotoneImage(ctx: *Context, args: anytype) !void {
     const light_r = args[3];
     const light_g = args[4];
     const light_b = args[5];
-    try ctx.image.convert(ctx.allocator, .rgba32);
+    try convertToRgba32(ctx);
 
-    if (ctx.verbose) {
-        std.log.info("Applying duotone effect", .{});
-    }
+    logVerbose(ctx, "Applying duotone effect", .{});
 
     const pixels = ctx.image.pixels.rgba32;
 
@@ -1237,20 +1189,17 @@ pub fn duotoneImage(ctx: *Context, args: anytype) !void {
 
 pub fn oilPaintingImage(ctx: *Context, args: anytype) !void {
     const radius = args[0];
-    try ctx.image.convert(ctx.allocator, .rgba32);
+    try convertToRgba32(ctx);
 
-    if (ctx.verbose) {
-        std.log.info("Applying oil painting effect with radius {d}", .{radius});
-    }
+    logVerbose(ctx, "Applying oil painting effect with radius {d}", .{radius});
 
     const pixels = ctx.image.pixels.rgba32;
     const width = ctx.image.width;
     const height = ctx.image.height;
 
     // Create a temporary buffer
-    const temp_pixels = try ctx.allocator.alloc(img.color.Rgba32, width * height);
+    const temp_pixels = try createTempBuffer(ctx, pixels);
     defer ctx.allocator.free(temp_pixels);
-    @memcpy(temp_pixels, pixels);
 
     // Oil painting uses intensity levels for a painted look
     const intensity_levels: usize = 20;

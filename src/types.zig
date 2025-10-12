@@ -16,6 +16,7 @@ pub const Context = struct {
     allocator: std.mem.Allocator,
     output_filename: []const u8,
     output_directory: ?[]const u8 = null,
+    output_extension: []const u8 = ".png",
     image_loaded: bool = false,
     verbose: bool = false,
 
@@ -23,8 +24,9 @@ pub const Context = struct {
         return .{
             .image = undefined,
             .allocator = allocator,
-            .output_filename = "out.png",
+            .output_filename = "out",
             .output_directory = null,
+            .output_extension = ".png",
             .image_loaded = false,
             .verbose = false,
         };
@@ -46,7 +48,13 @@ pub const Context = struct {
     }
 
     pub fn setOutput(self: *Context, filename: []const u8) void {
-        self.output_filename = filename;
+        const ext = std.fs.path.extension(filename);
+        if (ext.len > 0) {
+            self.output_filename = std.fs.path.stem(filename);
+            self.output_extension = ext;
+        } else {
+            self.output_filename = filename;
+        }
     }
 
     pub fn setOutputDirectory(self: *Context, directory: []const u8) void {

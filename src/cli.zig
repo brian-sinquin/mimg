@@ -269,6 +269,14 @@ const options = [_]types.Argument{
         .func = setOutputDirectory,
     },
     .{
+        .names = .{ .pair = .{ .short = "-e", .long = "--output-extension" } },
+        .option_type = types.ArgType.Option,
+        .param_types = &[_]type{[]const u8},
+        .description = "Set the output file extension (e.g., .png, .jpg)",
+        .usage = "--output-extension <extension>",
+        .func = setOutputExtension,
+    },
+    .{
         .names = .{ .pair = .{ .short = "-l", .long = "--list-modifiers" } },
         .option_type = types.ArgType.Option,
         .param_types = &[_]type{},
@@ -316,9 +324,22 @@ fn setOutputDirectory(ctx: *types.Context, args: anytype) !void {
     ctx.setOutputDirectory(args[0]);
 }
 
+fn setOutputExtension(ctx: *types.Context, args: anytype) !void {
+    _ = ctx.image;
+    _ = ctx.allocator;
+    ctx.output_extension = args[0];
+}
+
 fn enableVerbose(ctx: *types.Context, args: anytype) !void {
     _ = args;
     ctx.setVerbose(true);
+}
+
+pub fn getOptionName(names: types.Names) []const u8 {
+    return switch (names) {
+        .single => |name| name,
+        .pair => |pair| if (pair.long.len > 0) pair.long else pair.short,
+    };
 }
 
 pub fn printModifiers(ctx: *types.Context, args: anytype) !void {
@@ -327,10 +348,7 @@ pub fn printModifiers(ctx: *types.Context, args: anytype) !void {
     std.debug.print("Available modifiers:\n", .{});
     inline for (registered_options) |option| {
         if (option.option_type != types.ArgType.Modifier) continue;
-        const names_str = switch (option.names) {
-            .single => |name| name,
-            .pair => |pair| if (pair.long.len > 0) pair.long else pair.short,
-        };
+        const names_str = getOptionName(option.names);
         std.debug.print("  {s: <18} {s}\n", .{ names_str, option.description });
         if (option.usage.len > 0) {
             std.debug.print("    usage: {s}\n", .{option.usage});
@@ -357,6 +375,20 @@ pub fn processArguments(ctx: *types.Context, iterator: *std.process.ArgIterator)
     }
 }
 
+pub fn processArgumentsFromSlice(ctx: *types.Context, args: []const []const u8, arg_index: *usize) !void {
+    while (arg_index.* < args.len) {
+        const arg = args[arg_index.*];
+        arg_index.* += 1;
+
+        if (try handleArgumentFromSlice(ctx, args, arg_index, arg)) {
+            continue;
+        }
+        std.log.warn("Unknown argument: '{s}'", .{arg});
+        try printHelp(ctx, .{});
+        return CliError.UnknownArgument;
+    }
+}
+
 fn handleArgument(ctx: *types.Context, iterator: *std.process.ArgIterator, arg: []const u8) !bool {
     inline for (options) |option| {
         if (matchesOption(option.names, arg)) {
@@ -364,6 +396,27 @@ fn handleArgument(ctx: *types.Context, iterator: *std.process.ArgIterator, arg: 
                 reportParseError(arg, option, parse_err);
                 return CliError.InvalidArguments;
             };
+            @call(.auto, option.func, .{ ctx, parsed }) catch |modifier_err| {
+                std.log.err("Error applying modifier '{s}': {}", .{ arg, modifier_err });
+                return CliError.InvalidArguments;
+            };
+            return true;
+        }
+    }
+    return false;
+}
+
+fn handleArgumentFromSlice(ctx: *types.Context, args: []const []const u8, arg_index: *usize, arg: []const u8) !bool {
+    inline for (options) |option| {
+        if (matchesOption(option.names, arg)) {
+            // Back up the index since we already consumed the option name
+            arg_index.* -= 1;
+            const parsed = utils.parseArgsFromSlice(option.param_types, args, arg_index) catch |parse_err| {
+                reportParseError(arg, option, parse_err);
+                return CliError.InvalidArguments;
+            };
+            // Advance past the option name
+            arg_index.* += 1;
             @call(.auto, option.func, .{ ctx, parsed }) catch |modifier_err| {
                 std.log.err("Error applying modifier '{s}': {}", .{ arg, modifier_err });
                 return CliError.InvalidArguments;
@@ -388,10 +441,7 @@ pub fn printHelp(ctx: *types.Context, args: anytype) !void {
     std.debug.print("Usage: mimg <image_path> [options]\n", .{});
     std.debug.print("\nOptions:\n", .{});
     inline for (options) |option| {
-        const names_str = switch (option.names) {
-            .single => |name| name,
-            .pair => |pair| if (pair.long.len > 0) pair.long else pair.short,
-        };
+        const names_str = getOptionName(option.names);
         std.debug.print("  {s: <18} {s}\n", .{ names_str, option.description });
         if (option.usage.len > 0) {
             std.debug.print("    usage: {s}\n", .{option.usage});
