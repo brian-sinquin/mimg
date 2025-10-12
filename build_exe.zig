@@ -8,7 +8,9 @@ pub fn createExe(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.
     const target_name = b.option([]const u8, "target-name", "Target name for binary") orelse "unknown";
 
     // Build options for optimization
-    const enable_lto = b.option(bool, "lto", "Enable Link Time Optimization (slower builds, faster runtime)") orelse (optimize != .Debug); // Enable LTO for release builds
+    // LTO is disabled by default to avoid compilation issues on Linux/macOS CI/CD environments
+    // Enable with -Dlto=true for local release builds if desired
+    const enable_lto = b.option(bool, "lto", "Enable Link Time Optimization (slower builds, faster runtime)") orelse false;
     const strip_symbols = b.option(bool, "strip", "Strip debug symbols (smaller binary)") orelse (optimize != .Debug);
     const use_static = b.option(bool, "static", "Force static linking") orelse false;
 
