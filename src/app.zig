@@ -2,8 +2,9 @@ const std = @import("std");
 const types = @import("types.zig");
 const utils = @import("utils.zig");
 const cli = @import("cli.zig");
+const worker = @import("worker.zig");
 
-pub fn run() !void {
+fn initApp() !struct { allocator: std.mem.Allocator, args: []const []const u8 } {
     const allocator = std.heap.page_allocator;
     var args_iter = try std.process.ArgIterator.initWithAllocator(allocator);
     defer args_iter.deinit();
@@ -11,73 +12,134 @@ pub fn run() !void {
     // Skip executable name
     _ = args_iter.next();
 
-    var ctx = types.Context.init(allocator);
-    defer ctx.deinit();
+    // Collect all remaining arguments
+    var args_list = std.ArrayListUnmanaged([]const u8){};
+    defer args_list.deinit(allocator);
 
-    var filename: ?[]const u8 = null;
+    while (args_iter.next()) |arg| {
+        const duped = try allocator.dupe(u8, arg);
+        try args_list.append(allocator, duped);
+    }
 
-    while (filename == null) {
-        const next_arg = args_iter.next() orelse break;
+    return .{ .allocator = allocator, .args = try args_list.toOwnedSlice(allocator) };
+}
+
+fn parsePreFilenameOptions(ctx: *types.Context, args: []const []const u8, arg_index: *usize) !?[]const []const u8 {
+    while (arg_index.* < args.len) {
+        const arg = args[arg_index.*];
+        arg_index.* += 1;
 
         var consumed = false;
         inline for (cli.registered_options) |option| {
-            if (cli.matchesOption(option.names, next_arg)) {
+            if (cli.matchesOption(option.names, arg)) {
                 consumed = true;
 
                 if (option.option_type == types.ArgType.Modifier) {
-                    std.log.err("Expected an image path before modifier '{s}'", .{next_arg});
-                    try cli.printHelp(&ctx, .{});
-                    return;
+                    std.log.err("Expected an image path before modifier '{s}'", .{arg});
+                    try cli.printHelp(ctx, .{});
+                    return null;
                 }
 
-                const parsed = utils.parseArgs(option.param_types, &args_iter) catch |err| {
-                    cli.reportParseError(next_arg, option, err);
-                    return;
+                const parsed = utils.parseArgsFromSlice(option.param_types, args, arg_index) catch |err| {
+                    cli.reportParseError(arg, option, err);
+                    return null;
                 };
 
-                try @call(.auto, option.func, .{ &ctx, parsed });
+                try @call(.auto, option.func, .{ ctx, parsed });
 
                 if (option.func == cli.printHelp or option.func == cli.printModifiers) {
-                    return;
+                    return null;
                 }
 
                 break;
             }
         }
 
-        if (consumed) {
-            continue;
+        if (!consumed) {
+            // This is the filename pattern
+            const filenames = try utils.expandWildcard(ctx.allocator, arg);
+            return filenames;
         }
+    }
+    return null;
+}
 
-        filename = next_arg;
+fn loadImage(ctx: *types.Context, path: []const u8) !void {
+    const image = try utils.loadImageFromSource(ctx, path);
+    ctx.setImage(image);
+    ctx.output_extension = utils.getExtensionFromSource(path);
+    if (ctx.verbose) {
+        std.log.info("Successfully loaded image from '{s}'", .{path});
+        std.log.info("Image dimensions: {}x{}", .{ ctx.image.width, ctx.image.height });
+        try cli.printImageInfo(ctx, .{});
+    }
+}
+
+pub fn run() !void {
+    var app_data = try initApp();
+    defer {
+        for (app_data.args) |arg| {
+            app_data.allocator.free(arg);
+        }
+        app_data.allocator.free(app_data.args);
     }
 
-    if (filename) |path| {
-        const image = try utils.loadImage(&ctx, path);
-        ctx.setImage(image);
-        if (ctx.verbose) {
-            std.log.info("Successfully loaded image from '{s}'", .{path});
-            std.log.info("Image dimensions: {}x{}", .{ ctx.image.width, ctx.image.height });
-            try cli.printImageInfo(&ctx, .{});
+    var ctx = types.Context.init(app_data.allocator);
+    defer ctx.deinit();
+
+    var arg_index: usize = 0;
+    const filenames = try parsePreFilenameOptions(&ctx, app_data.args, &arg_index);
+    if (filenames) |files| {
+        defer app_data.allocator.free(files);
+        if (files.len == 0) {
+            std.log.err("No files found matching the pattern", .{});
+            return;
+        }
+
+        if (files.len == 1) {
+            // Single file processing
+            const result = try worker.processSingleFile(
+                app_data.allocator,
+                files[0],
+                app_data.args,
+                arg_index,
+                ctx.verbose,
+                ctx.preset_path,
+            );
+
+            switch (result) {
+                .processed => {},
+                .skipped_unreadable => std.log.warn("File was unreadable", .{}),
+                .skipped_modifier_error => std.log.warn("Modifier error occurred", .{}),
+                .failed_save => std.log.err("Failed to save image", .{}),
+            }
+        } else {
+            // Batch processing with multithreading
+            const stats = try worker.processFilesMultithreaded(
+                app_data.allocator,
+                files,
+                app_data.args,
+                arg_index,
+                ctx.verbose,
+                ctx.preset_path,
+            );
+
+            // Print summary
+            std.log.info("Processing complete:", .{});
+            std.log.info("  Files processed successfully: {}", .{stats.processed});
+            if (stats.skipped_unreadable > 0) {
+                std.log.info("  Files skipped (unreadable): {}", .{stats.skipped_unreadable});
+            }
+            if (stats.skipped_modifier_error > 0) {
+                std.log.info("  Files skipped (modifier error): {}", .{stats.skipped_modifier_error});
+            }
+            if (stats.failed_save > 0) {
+                std.log.info("  Files failed to save: {}", .{stats.failed_save});
+            }
         }
     } else {
         std.log.err("No image file provided", .{});
         try cli.printHelp(&ctx, .{});
         return;
-    }
-
-    cli.processArguments(&ctx, &args_iter) catch |err| switch (err) {
-        cli.CliError.UnknownArgument, cli.CliError.InvalidArguments => return,
-        else => return err,
-    };
-
-    var path_buffer: [utils.output_path_buffer_size]u8 = undefined;
-    const output_path = try utils.resolveOutputPath(&ctx, ctx.output_filename, &path_buffer);
-    if (ctx.verbose) {
-        std.log.info("Saving image to '{s}'", .{output_path});
-    }
-    try utils.saveImageToPath(&ctx, output_path);
-    if (ctx.verbose) {
-        std.log.info("Image saved successfully.", .{});
     }
 }

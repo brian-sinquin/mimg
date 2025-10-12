@@ -1,0 +1,39 @@
+name: Pull Request Validation
+
+on:
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  validate:
+    name: Validate PR
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Zig
+        uses: goto-bus-stop/setup-zig@v2
+        with:
+          version: 0.15.1
+
+      - name: Cache Zig dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/zig
+          key: ${{ runner.os }}-zig-${{ hashFiles('**/build.zig.zon') }}
+          restore-keys: |
+            ${{ runner.os }}-zig-
+
+      - name: Build
+        run: zig build -Doptimize=ReleaseSafe
+
+      - name: Run tests
+        run: zig build test -Dtests
+
+      - name: Build gallery
+        run: zig build gallery

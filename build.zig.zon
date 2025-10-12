@@ -1,10 +1,10 @@
 .{
     .name = .mimg,
-    .version = "0.1.1",
+    .version = "0.1.2",
     .dependencies = .{
         .zigimg = .{
-            .url = "git+https://github.com/zigimg/zigimg.git#d7717b3617d58160635623fe86d4bf86065498e0",
-            .hash = "zigimg-0.1.0-8_eo2vBrFQAvZmO9NzDP85_qC5JFksuMdyI_KMMEr4bq",
+            .url = "https://github.com/zigimg/zigimg/archive/master.tar.gz",
+            .hash = "zigimg-0.1.0-8_eo2vBrFQBhsrLpexdcDQY-zrlzkyFZfKuYX-Nry6KN",
         },
     },
     .paths = .{""},
