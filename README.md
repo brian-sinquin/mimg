@@ -1,6 +1,8 @@
 # mimg
 
-[![mimg](https://github.com/brian-sinquin/mimg/actions/workflows/dev.yml/badge.svg)](https://github.com/brian-sinquin/mimg/actions/workflows/dev.yml) [![GitHub release (latest by date)](https://img.shields.io/github/v/release/brian-sinquin/mimg?label=ver### Benchmark Results (Intel i7-9750H, 256x256 images)
+[![mimg](https://github.com/brian-sinquin/mimg/actions/workflows/dev.yml/badge.svg)](https://github.com/brian-sinquin/mimg/actions/workflows/dev.yml) [![GitHub release (latest by date)](https://img.shields.io/github/v/release/brian-sinquin/mimg?label=ver)](https://github.com/brian-sinquin/mimg/releases/latest)
+
+### Benchmark Results (Intel i7-9750H, 256x256 images)
 
 | Operation | Throughput | Notes |
 |-----------|------------|-------|
