@@ -74,8 +74,16 @@ fn writeExampleSection(writer: anytype, example: gallery_data.GalleryExample) !v
             filename_part[filename_len] = '_';
             filename_len += 1;
         }
-        @memcpy(filename_part[filename_len .. filename_len + arg.len], arg);
-        filename_len += arg.len;
+
+        // Sanitize the argument by replacing dots with underscores
+        for (arg) |char| {
+            if (char == '.') {
+                filename_part[filename_len] = '_';
+            } else {
+                filename_part[filename_len] = char;
+            }
+            filename_len += 1;
+        }
     }
     @memcpy(filename_part[filename_len .. filename_len + 9], "_lena.png");
     filename_len += 9;

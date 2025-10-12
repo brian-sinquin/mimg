@@ -33,5 +33,17 @@ jobs:
         with:
           version: 0.15.1
 
+      - name: Cache Zig dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/zig
+          key: ${{ runner.os }}-zig-${{ hashFiles('**/build.zig.zon') }}
+          restore-keys: |
+            ${{ runner.os }}-zig-
+
       - name: Build
         run: zig build -Dtarget=${{ matrix.TARGET }} -Doptimize=ReleaseSafe --summary all
+
+      - name: Run tests
+        run: zig build test -Dtarget=${{ matrix.TARGET }} -Dtests

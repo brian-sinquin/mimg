@@ -9,7 +9,7 @@ pub fn createGalleryCommand(b: *std.Build, exe: *std.Build.Step.Compile, example
         gallery_cmd.addArg(arg);
     }
 
-    // Generate output filename
+    // Generate output filename, sanitizing dots in parameters
     var output_name_buf: [128]u8 = undefined;
     var output_name_len: usize = 0;
 
@@ -18,20 +18,25 @@ pub fn createGalleryCommand(b: *std.Build, exe: *std.Build.Step.Compile, example
             @memcpy(output_name_buf[output_name_len .. output_name_len + 1], "_");
             output_name_len += 1;
         }
-        @memcpy(output_name_buf[output_name_len .. output_name_len + arg.len], arg);
-        output_name_len += arg.len;
+
+        // Sanitize the argument by replacing dots with underscores
+        for (arg) |char| {
+            if (char == '.') {
+                output_name_buf[output_name_len] = '_';
+            } else {
+                output_name_buf[output_name_len] = char;
+            }
+            output_name_len += 1;
+        }
     }
-    @memcpy(output_name_buf[output_name_len .. output_name_len + 9], "_lena.png");
-    output_name_len += 9;
 
     const output_filename = output_name_buf[0..output_name_len];
 
-    // Build full output path
-    var full_path_buf: [256]u8 = undefined;
-    const full_path = std.fmt.bufPrint(&full_path_buf, "examples/gallery/output/{s}", .{output_filename}) catch unreachable;
-
+    // Use --output-dir and --output separately
+    gallery_cmd.addArg("--output-dir");
+    gallery_cmd.addArg("examples/gallery/output");
     gallery_cmd.addArg("--output");
-    gallery_cmd.addArg(b.dupe(full_path));
+    gallery_cmd.addArg(b.dupe(output_filename));
 
     gallery_step.dependOn(&gallery_cmd.step);
 }
