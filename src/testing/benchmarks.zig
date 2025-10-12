@@ -1,7 +1,7 @@
 const std = @import("std");
 const img = @import("zigimg");
-const basic = @import("basic.zig");
-const types = @import("types.zig");
+const basic = @import("processing/basic.zig");
+const types = @import("core/types.zig");
 
 /// Create a test image with specified dimensions and color
 fn createBenchmarkImage(allocator: std.mem.Allocator, width: usize, height: usize, color: img.color.Rgba32) !img.Image {

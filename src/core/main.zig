@@ -1,4 +1,4 @@
-const app = @import("app/app.zig");
+const app = @import("../app/app.zig");
 
 pub fn main() !void {
     try app.run();

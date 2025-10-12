@@ -1,8 +1,8 @@
 const std = @import("std");
-const types = @import("types.zig");
-const utils = @import("utils.zig");
-const cli = @import("cli.zig");
-const worker = @import("worker.zig");
+const types = @import("../core/types.zig");
+const utils = @import("../core/utils.zig");
+const cli = @import("../core/cli.zig");
+const worker = @import("../utils/worker.zig");
 
 fn initApp() !struct { allocator: std.mem.Allocator, args: []const []const u8 } {
     const allocator = std.heap.page_allocator;

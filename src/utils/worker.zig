@@ -1,8 +1,8 @@
 const std = @import("std");
-const types = @import("types.zig");
-const utils = @import("utils.zig");
+const types = @import("../core/types.zig");
+const utils = @import("../core/utils.zig");
 const img = @import("zigimg");
-const cli = @import("cli.zig");
+const cli = @import("../core/cli.zig");
 
 /// Result of processing a single file
 pub const FileProcessResult = enum {

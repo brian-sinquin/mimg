@@ -1,7 +1,7 @@
 const std = @import("std");
 const types = @import("types.zig");
 const utils = @import("utils.zig");
-const modifiers = @import("modifiers.zig");
+const modifiers = @import("../processing/modifiers.zig");
 
 // Global options (non-modifiers)
 pub const global_options = [_]types.Argument{

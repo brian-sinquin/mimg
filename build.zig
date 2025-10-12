@@ -43,7 +43,7 @@ pub fn build(b: *std.Build) void {
 
         // Add separate test for our test file with proper dependencies
         const unit_test_module = b.createModule(.{
-            .root_source_file = b.path("src/tests.zig"),
+            .root_source_file = b.path("src/testing/tests.zig"),
             .target = target,
             .optimize = optimize,
         });
@@ -70,7 +70,7 @@ pub fn build(b: *std.Build) void {
     // Benchmarks (only if enabled)
     if (enable_benchmarks) {
         const benchmark_module = b.createModule(.{
-            .root_source_file = b.path("src/benchmarks.zig"),
+            .root_source_file = b.path("src/testing/benchmarks.zig"),
             .target = target,
             .optimize = optimize,
         });

@@ -1,4 +1,4 @@
-const types = @import("types.zig");
+const types = @import("../core/types.zig");
 const basic = @import("basic.zig");
 
 // All image modifier definitions

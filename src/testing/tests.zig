@@ -1,8 +1,8 @@
 const std = @import("std");
 const testing = std.testing;
-const utils = @import("utils.zig");
-const types = @import("types.zig");
-const basic = @import("basic.zig");
+const utils = @import("core/utils.zig");
+const types = @import("core/types.zig");
+const basic = @import("processing/basic.zig");
 const img = @import("zigimg");
 
 // Test utilities

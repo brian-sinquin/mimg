@@ -227,7 +227,7 @@ pub fn invertPixel(pixel: img.color.Rgba32) img.color.Rgba32 {
 
 /// Convert pixel to grayscale
 pub fn grayscalePixel(pixel: img.color.Rgba32) img.color.Rgba32 {
-    const gray = @import("utils.zig").rgbToLuminanceU8(pixel.r, pixel.g, pixel.b);
+    const gray = @import("../core/utils.zig").rgbToLuminanceU8(pixel.r, pixel.g, pixel.b);
     return img.color.Rgba32{
         .r = gray,
         .g = gray,
