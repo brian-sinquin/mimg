@@ -24,7 +24,7 @@ pub fn build(b: *std.Build) void {
 
     // Build options
     const documentation = b.option(bool, "docs", "Generate documentation") orelse false;
-    const enable_gallery = true; // b.option(bool, "gallery", "Enable gallery generation") orelse false;
+    const enable_gallery = b.option(bool, "gallery", "Enable gallery generation") orelse false;
     const enable_tests = b.option(bool, "tests", "Enable test building") orelse false;
     const enable_benchmarks = b.option(bool, "benchmarks", "Enable benchmark building") orelse false;
     const target_name = b.option([]const u8, "target-name", "Target name for binary") orelse "unknown";
@@ -79,10 +79,11 @@ pub fn build(b: *std.Build) void {
 
     // Benchmarks (only if enabled)
     if (enable_benchmarks) {
-        const benchmark_module = createModuleWithZigimg(b, "src/testing/benchmarks.zig", target, optimize);
+        const benchmark_module = createModuleWithZigimg(b, "src/main.zig", target, optimize);
 
         const benchmarks = b.addTest(.{
             .root_module = benchmark_module,
+            .filters = &[_][]const u8{"run performance benchmarks"},
         });
 
         const run_benchmarks = b.addRunArtifact(benchmarks);

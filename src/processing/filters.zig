@@ -66,6 +66,11 @@ pub fn blurImage(ctx: *Context, args: anytype) !void {
             pixels[idx].b = @as(u8, @intCast(b_sum / count));
             pixels[idx].a = @as(u8, @intCast(a_sum / count));
         }
+
+        // Report progress every 10% of rows
+        if (y % (height / 10) == 0) {
+            ctx.reportProgress(y, height, "blur");
+        }
     }
 
     utils.logMemoryUsage(ctx, "Blur end");
@@ -204,17 +209,16 @@ pub fn gaussianBlurImage(ctx: *Context, args: anytype) !void {
     const kernel = try generateGaussianKernel1D(ctx.allocator, sigma, kernel_radius);
     defer ctx.allocator.free(kernel);
 
-    // For separable blur, we need two temporary buffers
-    // Use the context's temp buffer for the first pass, and allocate a second one
-    const temp_pixels1 = try ctx.copyToTempBuffer(pixels);
-    const temp_pixels2 = try ctx.allocator.alloc(img.color.Rgba32, pixels.len);
-    defer ctx.allocator.free(temp_pixels2);
+    // For separable blur, we need one temporary buffer
+    const temp_pixels = try ctx.copyToTempBuffer(pixels);
 
     // Apply separable blur: horizontal pass
-    applyHorizontalConvolution(pixels, temp_pixels1, width, height, kernel, kernel_radius);
+    applyHorizontalConvolution(pixels, temp_pixels, width, height, kernel, kernel_radius);
+    ctx.reportProgress(1, 2, "gaussian-blur");
 
     // Apply separable blur: vertical pass
-    applyVerticalConvolution(temp_pixels1, pixels, width, height, kernel, kernel_radius);
+    applyVerticalConvolution(temp_pixels, pixels, width, height, kernel, kernel_radius);
+    ctx.reportProgress(2, 2, "gaussian-blur");
 
     utils.logMemoryUsage(ctx, "Gaussian blur end");
 }
@@ -461,6 +465,9 @@ pub fn medianFilterImage(ctx: *Context, args: anytype) !void {
 
     // Process image in tiles
     var tile_start_y: usize = radius;
+    var tile_count: usize = 0;
+    const total_tiles = (height - 2 * radius + tile_height - 1) / tile_height; // Approximate
+
     while (tile_start_y < height - radius) {
         const tile_end_y = @min(tile_start_y + tile_height - radius * 2, height - radius);
 
@@ -496,6 +503,8 @@ pub fn medianFilterImage(ctx: *Context, args: anytype) !void {
         }
 
         tile_start_y = tile_end_y;
+        tile_count += 1;
+        ctx.reportProgress(tile_count, total_tiles, "median-filter");
     }
 
     utils.logMemoryUsage(ctx, "Median filter end");
@@ -639,6 +648,9 @@ pub fn oilPaintingImage(ctx: *Context, args: anytype) !void {
 
     // Process image in tiles
     var tile_start_y: usize = 0;
+    var tile_count: usize = 0;
+    const total_tiles = (height + tile_height - 1) / tile_height;
+
     while (tile_start_y < height) {
         const tile_end_y = @min(tile_start_y + tile_height, height);
 
@@ -696,6 +708,8 @@ pub fn oilPaintingImage(ctx: *Context, args: anytype) !void {
         }
 
         tile_start_y = tile_end_y;
+        tile_count += 1;
+        ctx.reportProgress(tile_count, total_tiles, "oil-painting");
     }
 
     utils.logMemoryUsage(ctx, "Oil painting end");

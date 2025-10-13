@@ -64,6 +64,8 @@ pub const ArgType = enum {
     Modifier,
 };
 
+pub const ProgressCallback = *const fn (current: usize, total: usize, operation: []const u8) void;
+
 pub const Context = struct {
     image: img.Image,
     allocator: std.mem.Allocator,
@@ -75,9 +77,12 @@ pub const Context = struct {
     verbose: bool = false,
     temp_buffer: ?[]img.color.Rgba32 = null, // Reusable buffer for image processing
     temp_buffer_size: usize = 0, // Track allocated size for reuse
+    temp_buffer2: ?[]img.color.Rgba32 = null, // Second reusable buffer
+    temp_buffer2_size: usize = 0,
     preset_path: ?[]const u8 = null, // Path to preset file
     is_batch: bool = false, // Whether processing multiple files
     image_cache: std.StringHashMap(img.Image) = undefined, // Cache for loaded images
+    progress_callback: ?ProgressCallback = null, // Optional progress callback for long operations
 
     pub fn init(allocator: std.mem.Allocator) Context {
         return .{
@@ -91,6 +96,8 @@ pub const Context = struct {
             .verbose = false,
             .temp_buffer = null,
             .temp_buffer_size = 0,
+            .temp_buffer2 = null,
+            .temp_buffer2_size = 0,
             .preset_path = null,
             .is_batch = false,
             .image_cache = std.StringHashMap(img.Image).init(allocator),
@@ -131,6 +138,25 @@ pub const Context = struct {
         return temp_buf;
     }
 
+    /// Get or create a second temporary buffer of at least the specified size
+    pub fn getTempBuffer2(self: *Context, min_size: usize) ![]img.color.Rgba32 {
+        if (self.temp_buffer2) |buf| {
+            if (buf.len >= min_size) {
+                return buf[0..min_size];
+            } else {
+                // Free existing buffer if too small
+                self.allocator.free(buf);
+                self.temp_buffer2 = null;
+            }
+        }
+
+        // Allocate new buffer
+        const new_buf = try self.allocator.alloc(img.color.Rgba32, min_size);
+        self.temp_buffer2 = new_buf;
+        self.temp_buffer2_size = min_size;
+        return new_buf;
+    }
+
     pub fn deinit(self: *Context) void {
         if (self.image_loaded) {
             self.image.deinit(self.allocator);
@@ -144,6 +170,12 @@ pub const Context = struct {
             self.allocator.free(dir);
         }
         if (self.temp_buffer) |buf| {
+            self.allocator.free(buf);
+        }
+        if (self.temp_buffer2) |buf| {
+            self.allocator.free(buf);
+        }
+        if (self.temp_buffer2) |buf| {
             self.allocator.free(buf);
         }
         if (self.preset_path) |path| {
@@ -182,6 +214,17 @@ pub const Context = struct {
 
     pub fn setVerbose(self: *Context, value: bool) void {
         self.verbose = value;
+    }
+
+    pub fn setProgressCallback(self: *Context, callback: ?ProgressCallback) void {
+        self.progress_callback = callback;
+    }
+
+    /// Report progress for long operations
+    pub fn reportProgress(self: *Context, current: usize, total: usize, operation: []const u8) void {
+        if (self.progress_callback) |callback| {
+            callback(current, total, operation);
+        }
     }
 };
 

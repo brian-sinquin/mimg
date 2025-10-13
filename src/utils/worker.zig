@@ -285,5 +285,16 @@ pub fn processSingleFile(
         ctx.preset_path = try arena_allocator.dupe(u8, path);
     }
 
+    // Set up progress callback for long operations (only in verbose mode for single files)
+    if (verbose) {
+        ctx.setProgressCallback(singleFileProgressCallback);
+    }
+
     return processFile(&ctx, filename, args, start_arg_index);
+}
+
+/// Simple progress callback for single file operations
+fn singleFileProgressCallback(current: usize, total: usize, operation: []const u8) void {
+    const percentage = @as(f32, @floatFromInt(current)) / @as(f32, @floatFromInt(total)) * 100.0;
+    std.log.info("{s}: {d:.1}% complete ({d}/{d})", .{ operation, percentage, current, total });
 }
