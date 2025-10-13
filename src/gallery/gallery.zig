@@ -13,10 +13,12 @@ fn generateGalleryFilename(allocator: std.mem.Allocator, args: []const []const u
             try writer.writeByte('_');
         }
 
-        // Sanitize the argument by replacing dots with underscores
+        // Sanitize the argument by replacing dots with underscores and '#' with '0x'
         for (arg) |char| {
             if (char == '.') {
                 try writer.writeByte('_');
+            } else if (char == '#') {
+                try writer.writeAll("0x");
             } else {
                 try writer.writeByte(char);
             }
@@ -35,23 +37,25 @@ pub fn main() !void {
     const cwd = std.fs.cwd();
 
     // Read template file
-    const template_content = try cwd.readFileAlloc(allocator, "examples/gallery/gallery.html.temp", 10 * 1024);
+    const template_content = try cwd.readFileAlloc(std.heap.page_allocator, "examples/gallery/gallery.html.temp", 10 * 1024);
     defer allocator.free(template_content);
 
     // Generate individual modifiers section
-    var individual_modifiers = try std.ArrayList(u8).initCapacity(allocator, 4096);
+    var individual_modifiers = try std.ArrayList(u8).initCapacity(allocator, 8192);
     defer individual_modifiers.deinit(allocator);
-
-    for (gallery_data.individual_modifiers) |modifier| {
-        try writeExampleSection(individual_modifiers.writer(allocator), modifier, allocator);
-    }
-
-    // Generate combinations section
-    var combinations = try std.ArrayList(u8).initCapacity(allocator, 4096);
+    var combinations = try std.ArrayList(u8).initCapacity(allocator, 8192);
     defer combinations.deinit(allocator);
 
+    for (gallery_data.individual_modifiers) |modifier| {
+        var temp: [4096]u8 = [_]u8{0} ** 4096;
+        const written = writeExampleSectionFast(temp[0..], modifier, allocator) catch 0;
+        try individual_modifiers.appendSlice(allocator, temp[0..written]);
+    }
+
     for (gallery_data.combinations) |combo| {
-        try writeExampleSection(combinations.writer(allocator), combo, allocator);
+        var temp: [4096]u8 = [_]u8{0} ** 4096;
+        const written = writeExampleSectionFast(temp[0..], combo, allocator) catch 0;
+        try combinations.appendSlice(allocator, temp[0..written]);
     }
 
     // Replace placeholders in template
@@ -80,19 +84,11 @@ pub fn main() !void {
 }
 
 // Helper function to write example section
-fn writeExampleSection(writer: anytype, example: gallery_data.GalleryExample, allocator: std.mem.Allocator) !void {
+fn writeExampleSectionFast(buf: []u8, example: gallery_data.GalleryExample, allocator: std.mem.Allocator) !usize {
     // Build filename using utility function
     const filename = try generateGalleryFilename(allocator, example.args);
     defer allocator.free(filename);
 
-    try writer.print(
-        \\<div class="image-item">
-        \\    <img src="output/{s}" alt="{s}">
-        \\    <div class="image-info">
-        \\        <div class="image-title">{s}</div>
-        \\        <div class="image-description">{s}</div>
-        \\    </div>
-        \\</div>
-        \\
-    , .{ filename, example.name, example.name, example.description });
+    const rest = std.fmt.bufPrint(buf, "<div class=\"image-item\">\n    <img src=\"output/{s}\" alt=\"{s}\">\n    <div class=\"image-info\">\n        <div class=\"image-title\">{s}</div>\n        <div class=\"image-description\">{s}</div>\n    </div>\n</div>\n", .{ filename, example.name, example.name, example.description }) catch return 0;
+    return buf.len - rest.len;
 }

@@ -1,8 +1,8 @@
 const std = @import("std");
-const build_exe = @import("build_exe.zig");
-const build_gallery = @import("build_gallery.zig");
+const build_exe = @import("build/build_exe.zig");
+const build_gallery = @import("build/build_gallery.zig");
 
-fn createModuleWithZigimg(b: *std.Build, root_source_file: []const u8, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode) *std.Build.Module {
+fn createModuleWithZigimg(b: *std.Build, root_source_file: []const u8, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode, include_benchmarks: bool) *std.Build.Module {
     const module = b.createModule(.{
         .root_source_file = b.path(root_source_file),
         .target = target,
@@ -15,6 +15,11 @@ fn createModuleWithZigimg(b: *std.Build, root_source_file: []const u8, target: s
     });
     module.addImport("zigimg", zigimg_dependency.module("zigimg"));
 
+    // Add build options
+    const options = b.addOptions();
+    options.addOption(bool, "include_benchmarks", include_benchmarks);
+    module.addImport("build_options", options.createModule());
+
     return module;
 }
 
@@ -23,10 +28,8 @@ pub fn build(b: *std.Build) void {
     const optimize = b.standardOptimizeOption(.{});
 
     // Build options
-    const documentation = b.option(bool, "docs", "Generate documentation") orelse false;
-    const enable_gallery = b.option(bool, "gallery", "Enable gallery generation") orelse false;
-    const enable_tests = b.option(bool, "tests", "Enable test building") orelse false;
-    const enable_benchmarks = b.option(bool, "benchmarks", "Enable benchmark building") orelse false;
+    // Gallery is always generated as a build step; no flag required
+    // Tests and benchmarks are always enabled; no flags required
     const target_name = b.option([]const u8, "target-name", "Target name for binary") orelse "unknown";
     const enable_lto = b.option(bool, "lto", "Enable Link Time Optimization (slower builds, faster runtime)") orelse false;
     const strip_symbols = b.option(bool, "strip", "Strip debug symbols (smaller binary)") orelse (optimize != .Debug);
@@ -40,67 +43,31 @@ pub fn build(b: *std.Build) void {
     const run_step = b.step("run", "Run the app");
     const run_cmd = b.addRunArtifact(exe);
     run_step.dependOn(&run_cmd.step);
-    run_cmd.step.dependOn(b.getInstallStep());
+    // Don't depend on global install to avoid building unrelated artifacts
 
     if (b.args) |args| {
         run_cmd.addArgs(args);
     }
 
-    // Gallery generation (only if enabled)
-    if (enable_gallery) {
-        _ = build_gallery.setupGallery(b, target, optimize, exe);
-    }
+    // Gallery generation (always enabled, not an executable)
+    _ = build_gallery.setupGallery(b, target, optimize, exe);
 
-    // Documentation
-    if (documentation) {
-        std.log.warn("Documentation generation is not yet supported on this Zig release.", .{});
-    }
+    // Always define test step
+    const exe_tests = b.addTest(.{
+        .root_module = exe.root_module,
+    });
+    // Add separate test for our test file with proper dependencies
+    const unit_test_module = createModuleWithZigimg(b, "src/main.zig", target, optimize, false);
+    const unit_tests = b.addTest(.{
+        .root_module = unit_test_module,
+    });
+    const test_step = b.step("test", "Run tests");
+    test_step.dependOn(&exe_tests.step);
+    test_step.dependOn(&unit_tests.step);
 
-    // Tests (only if enabled)
-    if (enable_tests) {
-        const exe_tests = b.addTest(.{
-            .root_module = exe.root_module,
-        });
+    // ...existing code...
 
-        // Add separate test for our test file with proper dependencies
-        const unit_test_module = createModuleWithZigimg(b, "src/main.zig", target, optimize);
-
-        const unit_tests = b.addTest(.{
-            .root_module = unit_test_module,
-        });
-
-        const run_exe_tests = b.addRunArtifact(exe_tests);
-        const run_unit_tests = b.addRunArtifact(unit_tests);
-
-        const test_step = b.step("test", "Run tests");
-        test_step.dependOn(&run_exe_tests.step);
-        test_step.dependOn(&run_unit_tests.step);
-    }
-
-    // Benchmarks (only if enabled)
-    if (enable_benchmarks) {
-        const benchmark_module = createModuleWithZigimg(b, "src/main.zig", target, optimize);
-
-        const benchmarks = b.addTest(.{
-            .root_module = benchmark_module,
-            .filters = &[_][]const u8{"run performance benchmarks"},
-        });
-
-        const run_benchmarks = b.addRunArtifact(benchmarks);
-
-        const benchmark_step = b.step("bench", "Run performance benchmarks");
-        benchmark_step.dependOn(&run_benchmarks.step);
-    }
-
-    // Quick build step for development (always Debug, no LTO)
-    const quick_build_step = b.step("quick", "Quick development build (Debug, no LTO)");
-    const quick_exe = build_exe.createExe(b, target, .Debug, target_name, false, false, false, null);
-    quick_build_step.dependOn(&quick_exe.step);
-
-    // Release build step with all optimizations
-    const release_build_step = b.step("release", "Optimized release build");
-    const release_exe = build_exe.createExe(b, target, .ReleaseFast, target_name, false, true, false, "avx2");
-    release_build_step.dependOn(&release_exe.step);
+    // ...existing code...
 
     // Clean step
     const clean_step = b.step("clean", "Clean build artifacts");

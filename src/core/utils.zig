@@ -126,24 +126,7 @@ pub fn parseArgs(comptime type_list: []const type, it: *std.process.ArgIterator)
     return tuple;
 }
 
-pub fn parseNextArg(comptime T: type, it: *std.process.ArgIterator) types.ParseArgError!T {
-    const arg = it.next() orelse {
-        return types.ParseArgError.MissingArgument;
-    };
-    if (T == []const u8) {
-        return arg;
-    }
-
-    return switch (@typeInfo(T)) {
-        .float => std.fmt.parseFloat(T, arg) catch {
-            return types.ParseArgError.InvalidArgument;
-        },
-        .int => std.fmt.parseInt(T, arg, 10) catch {
-            return types.ParseArgError.InvalidArgument;
-        },
-        else => @compileError("Unsupported parameter type in parseNextArg"),
-    };
-}
+// parseNextArg removed (unused)
 
 /// Downloads the content of a file from a URL into memory (does not write to disk).
 pub fn downloadFileToMemory(allocator: std.mem.Allocator, url: []const u8) ![]u8 {
@@ -271,23 +254,7 @@ pub fn loadImageFromSource(ctx: *types.Context, source: []const u8) !img.Image {
     }
 }
 
-pub fn getPixel(pixels: []const img.color.Rgba32, width: usize, x: usize, y: usize) img.color.Rgba32 {
-    // Input validation
-    if (width == 0) unreachable;
-    if (x >= width) unreachable;
-    const idx = y * width + x;
-    if (idx >= pixels.len) unreachable;
-    return pixels[idx];
-}
-
-pub fn setPixel(pixels: []img.color.Rgba32, width: usize, x: usize, y: usize, color: img.color.Rgba32) void {
-    // Input validation
-    if (width == 0) unreachable;
-    if (x >= width) unreachable;
-    const idx = y * width + x;
-    if (idx >= pixels.len) unreachable;
-    pixels[idx] = color;
-}
+// getPixel/setPixel removed (not used)
 
 pub fn getPixelSafe(pixels: []const img.color.Rgba32, width: usize, height: usize, x: i32, y: i32) ?img.color.Rgba32 {
     if (x < 0 or y < 0 or x >= width or y >= height) return null;
@@ -306,9 +273,7 @@ pub fn clampU8(value: f32) u8 {
     return @as(u8, @intFromFloat(std.math.clamp(value, 0.0, 255.0)));
 }
 
-pub fn clampI16ToU8(value: i16) u8 {
-    return @as(u8, @intCast(std.math.clamp(value, 0, 255)));
-}
+// clampI16ToU8 removed (unused)
 
 pub fn rgbToLuminance(r: u8, g: u8, b: u8) f32 {
     return 0.299 * @as(f32, @floatFromInt(r)) +

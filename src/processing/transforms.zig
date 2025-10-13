@@ -3,6 +3,7 @@ const std = @import("std");
 const Context = @import("../core/types.zig").Context;
 const utils = @import("../core/utils.zig");
 const math = std.math;
+const simd = @import("../utils/simd_utils.zig");
 
 pub fn resizeImage(ctx: *Context, args: anytype) !void {
     const new_width = args[0];
@@ -423,4 +424,162 @@ pub fn mirrorVerticalImage(ctx: *Context, args: anytype) !void {
     _ = args;
     // Mirror vertical is the same as flip vertical
     try flipVerticalImage(ctx, .{});
+}
+
+pub fn roundCornersImage(ctx: *Context, args: anytype) !void {
+    const radius = args[0];
+
+    // Input validation
+    if (radius < 0) {
+        std.log.err("Corner radius must be non-negative, got {d}", .{radius});
+        return error.InvalidRadius;
+    }
+
+    try utils.convertToRgba32(ctx);
+
+    utils.logVerbose(ctx, "Rounding corners with radius {d}", .{radius});
+
+    const pixels = ctx.image.pixels.rgba32;
+    const width = ctx.image.width;
+    const height = ctx.image.height;
+
+    // If radius is 0, do nothing
+    if (radius == 0) return;
+
+    const radius_f = @as(f32, @floatFromInt(radius));
+    const width_f = @as(f32, @floatFromInt(width));
+    const height_f = @as(f32, @floatFromInt(height));
+
+    const pixel_count = pixels.len;
+    var i: usize = 0;
+
+    // Process in chunks of 4 pixels using SIMD
+    while (i + 4 <= pixel_count) : (i += 4) {
+        // Calculate coordinates for 4 pixels
+        const y0 = i / width;
+        const x0 = i % width;
+        const y1 = (i + 1) / width;
+        const x1 = (i + 1) % width;
+        const y2 = (i + 2) / width;
+        const x2 = (i + 2) % width;
+        const y3 = (i + 3) / width;
+        const x3 = (i + 3) % width;
+
+        // Load pixel values
+        const r_vec: simd.Vec4f32 = [_]f32{
+            @as(f32, @floatFromInt(pixels[i].r)),
+            @as(f32, @floatFromInt(pixels[i + 1].r)),
+            @as(f32, @floatFromInt(pixels[i + 2].r)),
+            @as(f32, @floatFromInt(pixels[i + 3].r)),
+        };
+        const g_vec: simd.Vec4f32 = [_]f32{
+            @as(f32, @floatFromInt(pixels[i].g)),
+            @as(f32, @floatFromInt(pixels[i + 1].g)),
+            @as(f32, @floatFromInt(pixels[i + 2].g)),
+            @as(f32, @floatFromInt(pixels[i + 3].g)),
+        };
+        const b_vec: simd.Vec4f32 = [_]f32{
+            @as(f32, @floatFromInt(pixels[i].b)),
+            @as(f32, @floatFromInt(pixels[i + 1].b)),
+            @as(f32, @floatFromInt(pixels[i + 2].b)),
+            @as(f32, @floatFromInt(pixels[i + 3].b)),
+        };
+        const a_vec: simd.Vec4f32 = [_]f32{
+            @as(f32, @floatFromInt(pixels[i].a)),
+            @as(f32, @floatFromInt(pixels[i + 1].a)),
+            @as(f32, @floatFromInt(pixels[i + 2].a)),
+            @as(f32, @floatFromInt(pixels[i + 3].a)),
+        };
+
+        // Calculate coordinates as f32 vectors
+        const x_vec: simd.Vec4f32 = [_]f32{
+            @as(f32, @floatFromInt(x0)),
+            @as(f32, @floatFromInt(x1)),
+            @as(f32, @floatFromInt(x2)),
+            @as(f32, @floatFromInt(x3)),
+        };
+        const y_vec: simd.Vec4f32 = [_]f32{
+            @as(f32, @floatFromInt(y0)),
+            @as(f32, @floatFromInt(y1)),
+            @as(f32, @floatFromInt(y2)),
+            @as(f32, @floatFromInt(y3)),
+        };
+
+        // Apply round corners effect using SIMD
+        const result = simd.applyRoundCornersSIMD4(r_vec, g_vec, b_vec, a_vec, x_vec, y_vec, width_f, height_f, radius_f);
+        const new_a_vec = result[3];
+
+        // Convert back to u8 and store (RGB unchanged, only alpha modified)
+        pixels[i].a = @as(u8, @intFromFloat(math.clamp(new_a_vec[0], 0.0, 255.0)));
+        pixels[i + 1].a = @as(u8, @intFromFloat(math.clamp(new_a_vec[1], 0.0, 255.0)));
+        pixels[i + 2].a = @as(u8, @intFromFloat(math.clamp(new_a_vec[2], 0.0, 255.0)));
+        pixels[i + 3].a = @as(u8, @intFromFloat(math.clamp(new_a_vec[3], 0.0, 255.0)));
+    }
+
+    // Handle remaining pixels with scalar operations
+    while (i < pixel_count) : (i += 1) {
+        const y = i / width;
+        const x = i % width;
+
+        const y_f = @as(f32, @floatFromInt(y));
+        const x_f = @as(f32, @floatFromInt(x));
+        const dist_from_top = y_f;
+        const dist_from_bottom = @as(f32, @floatFromInt(height - 1)) - y_f;
+        const dist_from_left = x_f;
+        const dist_from_right = @as(f32, @floatFromInt(width - 1)) - x_f;
+
+        // Check if we're in a corner region
+        var alpha_mult: f32 = 1.0;
+
+        // Top-left corner
+        if (dist_from_left <= radius_f and dist_from_top <= radius_f) {
+            const dx = radius_f - dist_from_left;
+            const dy = radius_f - dist_from_top;
+            const dist_from_corner = math.sqrt(dx * dx + dy * dy);
+            if (dist_from_corner > radius_f) {
+                alpha_mult = 0.0;
+            } else if (dist_from_corner > radius_f - 1.0) {
+                // Anti-aliasing: smooth transition
+                alpha_mult = (radius_f - dist_from_corner);
+            }
+        }
+        // Top-right corner
+        else if (dist_from_right <= radius_f and dist_from_top <= radius_f) {
+            const dx = radius_f - dist_from_right;
+            const dy = radius_f - dist_from_top;
+            const dist_from_corner = math.sqrt(dx * dx + dy * dy);
+            if (dist_from_corner > radius_f) {
+                alpha_mult = 0.0;
+            } else if (dist_from_corner > radius_f - 1.0) {
+                alpha_mult = (radius_f - dist_from_corner);
+            }
+        }
+        // Bottom-left corner
+        else if (dist_from_left <= radius_f and dist_from_bottom <= radius_f) {
+            const dx = radius_f - dist_from_left;
+            const dy = radius_f - dist_from_bottom;
+            const dist_from_corner = math.sqrt(dx * dx + dy * dy);
+            if (dist_from_corner > radius_f) {
+                alpha_mult = 0.0;
+            } else if (dist_from_corner > radius_f - 1.0) {
+                alpha_mult = (radius_f - dist_from_corner);
+            }
+        }
+        // Bottom-right corner
+        else if (dist_from_right <= radius_f and dist_from_bottom <= radius_f) {
+            const dx = radius_f - dist_from_right;
+            const dy = radius_f - dist_from_bottom;
+            const dist_from_corner = math.sqrt(dx * dx + dy * dy);
+            if (dist_from_corner > radius_f) {
+                alpha_mult = 0.0;
+            } else if (dist_from_corner > radius_f - 1.0) {
+                alpha_mult = (radius_f - dist_from_corner);
+            }
+        }
+
+        // Apply alpha multiplier
+        const current_alpha = @as(f32, @floatFromInt(pixels[i].a)) / 255.0;
+        const new_alpha = current_alpha * alpha_mult;
+        pixels[i].a = @as(u8, @intFromFloat(math.clamp(new_alpha * 255.0, 0.0, 255.0)));
+    }
 }

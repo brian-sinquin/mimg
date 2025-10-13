@@ -2,14 +2,16 @@ const std = @import("std");
 const testing = std.testing;
 const utils = @import("../core/utils.zig");
 const types = @import("../core/types.zig");
-const basic = @import("../processing/basic.zig");
+const color = @import("../processing/color.zig");
+const filters = @import("../processing/filters.zig");
+const transforms = @import("../processing/transforms.zig");
 const img = @import("zigimg");
 
 // Test utilities
-fn createTestImage(allocator: std.mem.Allocator, width: usize, height: usize, color: img.color.Rgba32) !img.Image {
+fn createTestImage(allocator: std.mem.Allocator, width: usize, height: usize, pixel_color: img.color.Rgba32) !img.Image {
     const image = try img.Image.create(allocator, width, height, .rgba32);
     for (image.pixels.rgba32) |*pixel| {
-        pixel.* = color;
+        pixel.* = pixel_color;
     }
     return image;
 }
@@ -171,7 +173,7 @@ test "invertColors - basic functionality" {
     ctx.setImage(image);
 
     // Apply invert
-    try basic.invertColors(&ctx, .{});
+    try color.invertColors(&ctx, .{});
 
     // Check results
     const pixels = ctx.image.pixels.rgba32;
@@ -191,7 +193,7 @@ test "grayscaleImage - luminance calculation" {
     ctx.setImage(image);
 
     // Apply grayscale
-    try basic.grayscaleImage(&ctx, .{});
+    try color.grayscaleImage(&ctx, .{});
 
     // Check result (should be luminance: 0.299*255 + 0.587*128 + 0.114*0 ≈ 151)
     const pixel = ctx.image.pixels.rgba32[0];
@@ -209,7 +211,7 @@ test "adjustBrightness - positive and negative" {
     // Test positive brightness
     const image1 = try createTestImage(allocator, 1, 1, img.color.Rgba32{ .r = 100, .g = 100, .b = 100, .a = 255 });
     ctx.setImage(image1);
-    try basic.adjustBrightness(&ctx, .{50});
+    try color.adjustBrightness(&ctx, .{50});
 
     const pixel1 = ctx.image.pixels.rgba32[0];
     try testing.expectEqual(@as(u8, 150), pixel1.r);
@@ -219,7 +221,7 @@ test "adjustBrightness - positive and negative" {
     // Test negative brightness (clamping)
     const image2 = try createTestImage(allocator, 1, 1, img.color.Rgba32{ .r = 50, .g = 50, .b = 50, .a = 255 });
     ctx.setImage(image2);
-    try basic.adjustBrightness(&ctx, .{-100});
+    try color.adjustBrightness(&ctx, .{-100});
 
     const pixel2 = ctx.image.pixels.rgba32[0];
     try testing.expectEqual(@as(u8, 0), pixel2.r);
@@ -237,7 +239,7 @@ test "adjustContrast - basic functionality" {
     ctx.setImage(image);
 
     // Apply contrast adjustment
-    try basic.adjustContrast(&ctx, .{2.0});
+    try color.adjustContrast(&ctx, .{2.0});
 
     // The middle value should be more extreme
     const pixels = ctx.image.pixels.rgba32;
@@ -258,7 +260,7 @@ test "resizeImage - nearest neighbor" {
     ctx.setImage(image);
 
     // Resize to 1x1
-    try basic.resizeImage(&ctx, .{ 1, 1 });
+    try transforms.resizeImage(&ctx, .{ 1, 1 });
 
     try testing.expectEqual(@as(usize, 1), ctx.image.width);
     try testing.expectEqual(@as(usize, 1), ctx.image.height);
@@ -280,7 +282,7 @@ test "cropImage - basic functionality" {
     ctx.setImage(image);
 
     // Crop a 2x2 region starting at (1,1)
-    try basic.cropImage(&ctx, .{ 1, 1, 2, 2 });
+    try transforms.cropImage(&ctx, .{ 1, 1, 2, 2 });
 
     try testing.expectEqual(@as(usize, 2), ctx.image.width);
     try testing.expectEqual(@as(usize, 2), ctx.image.height);
@@ -410,7 +412,7 @@ test "adjustSaturation - basic functionality" {
     ctx.setImage(image);
 
     // Increase saturation
-    try basic.adjustSaturation(&ctx, .{1.5});
+    try color.adjustSaturation(&ctx, .{1.5});
 
     const pixel = ctx.image.pixels.rgba32[0];
     // Saturation increase should make colors more vivid
@@ -429,7 +431,7 @@ test "adjustGamma - basic functionality" {
     ctx.setImage(image);
 
     // Apply gamma correction (gamma < 1 makes dark areas brighter but midtones darker)
-    try basic.adjustGamma(&ctx, .{0.5});
+    try color.adjustGamma(&ctx, .{0.5});
 
     const pixel = ctx.image.pixels.rgba32[0];
     // Gamma < 1 should make mid-tones darker
@@ -448,7 +450,7 @@ test "adjustExposure - basic functionality" {
     ctx.setImage(image);
 
     // Increase exposure
-    try basic.adjustExposure(&ctx, .{0.5});
+    try color.adjustExposure(&ctx, .{0.5});
 
     const pixel = ctx.image.pixels.rgba32[0];
     // Exposure increase should brighten the image
@@ -467,7 +469,7 @@ test "adjustVibrance - basic functionality" {
     ctx.setImage(image);
 
     // Increase vibrance
-    try basic.adjustVibrance(&ctx, .{0.3});
+    try color.adjustVibrance(&ctx, .{0.3});
 
     const pixel = ctx.image.pixels.rgba32[0];
     // Vibrance should adjust colors (less saturated colors boosted more)
@@ -487,7 +489,7 @@ test "equalizeImage - histogram equalization" {
     ctx.setImage(image);
 
     // Apply histogram equalization
-    try basic.equalizeImage(&ctx, .{});
+    try color.equalizeImage(&ctx, .{});
 
     // After equalization, the image should have better contrast
     // Check that we have both dark and light pixels
@@ -511,7 +513,7 @@ test "hueShiftImage - color rotation" {
     ctx.setImage(image);
 
     // Shift hue by 120 degrees (should become green)
-    try basic.hueShiftImage(&ctx, .{120.0});
+    try color.hueShiftImage(&ctx, .{120.0});
 
     const pixel = ctx.image.pixels.rgba32[0];
     // Should be approximately green now
@@ -530,7 +532,7 @@ test "applySepia - sepia tone effect" {
     ctx.setImage(image);
 
     // Apply sepia effect
-    try basic.applySepia(&ctx, .{});
+    try color.applySepia(&ctx, .{});
 
     const pixel = ctx.image.pixels.rgba32[0];
     // Sepia should give warm brownish tones (r and g high, b lower)
@@ -549,7 +551,7 @@ test "colorizeImage - single color tint" {
     ctx.setImage(image);
 
     // Colorize with red and intensity
-    try basic.colorizeImage(&ctx, .{ 255, 0, 0, 0.5 });
+    try color.colorizeImage(&ctx, .{ 255, 0, 0, 0.5 });
 
     const pixel = ctx.image.pixels.rgba32[0];
     // Should be tinted red
@@ -567,7 +569,7 @@ test "duotoneImage - two color gradient" {
     ctx.setImage(image);
 
     // Apply duotone effect
-    try basic.duotoneImage(&ctx, .{ 255, 0, 0, 0, 0, 255 }); // Red to blue
+    try color.duotoneImage(&ctx, .{ 255, 0, 0, 0, 0, 255 }); // Red to blue
 
     const pixels = ctx.image.pixels.rgba32;
     // First pixel should be more red (dark color)
@@ -586,7 +588,7 @@ test "thresholdImage - binary conversion" {
     ctx.setImage(image);
 
     // Apply threshold
-    try basic.thresholdImage(&ctx, .{128});
+    try color.thresholdImage(&ctx, .{128});
 
     const pixels = ctx.image.pixels.rgba32;
     // Should be binary: black or white
@@ -607,7 +609,7 @@ test "solarizeImage - solarization effect" {
     ctx.setImage(image);
 
     // Apply solarization
-    try basic.solarizeImage(&ctx, .{128});
+    try color.solarizeImage(&ctx, .{128});
 
     const pixel = ctx.image.pixels.rgba32[0];
     // Solarization should invert bright areas
@@ -626,7 +628,7 @@ test "posterizeImage - reduce color levels" {
     ctx.setImage(image);
 
     // Apply posterization (4 levels)
-    try basic.posterizeImage(&ctx, .{4});
+    try color.posterizeImage(&ctx, .{4});
 
     const pixels = ctx.image.pixels.rgba32;
     // Check that colors are quantized to specific levels
@@ -661,7 +663,7 @@ test "blurImage - box blur" {
     ctx.setImage(image);
 
     // Apply blur
-    try basic.blurImage(&ctx, .{3});
+    try filters.blurImage(&ctx, .{3});
 
     const pixels = ctx.image.pixels.rgba32;
     // Center pixel should be averaged (5 white + 4 black = 141.67)
@@ -680,7 +682,7 @@ test "gaussianBlurImage - gaussian blur" {
     ctx.setImage(image);
 
     // Apply gaussian blur
-    try basic.gaussianBlurImage(&ctx, .{1.0});
+    try filters.gaussianBlurImage(&ctx, .{1.0});
 
     const pixels = ctx.image.pixels.rgba32;
     // Center should be blurred but still brighter than edges
@@ -698,7 +700,7 @@ test "sharpenImage - unsharp mask" {
     ctx.setImage(image);
 
     // Apply sharpen
-    try basic.sharpenImage(&ctx, .{1.0});
+    try filters.sharpenImage(&ctx, .{1.0});
 
     const pixels = ctx.image.pixels.rgba32;
     // Edges should be enhanced (center becomes more extreme)
@@ -715,7 +717,7 @@ test "embossImage - emboss effect" {
     ctx.setImage(image);
 
     // Apply emboss
-    try basic.embossImage(&ctx, .{});
+    try filters.embossImage(&ctx, .{0.5});
 
     const pixels = ctx.image.pixels.rgba32;
     // Emboss should create light/dark edges
@@ -732,7 +734,7 @@ test "vignetteImage - corner darkening" {
     ctx.setImage(image);
 
     // Apply vignette
-    try basic.vignetteImage(&ctx, .{0.5});
+    try filters.vignetteImage(&ctx, .{0.5});
 
     const pixels = ctx.image.pixels.rgba32;
     // Corners should be darker than center
@@ -760,7 +762,7 @@ test "edgeDetectImage - sobel operator" {
     ctx.setImage(image);
 
     // Apply edge detection
-    try basic.edgeDetectImage(&ctx, .{});
+    try filters.edgeDetectImage(&ctx, .{});
 
     const pixels = ctx.image.pixels.rgba32;
     // Should detect the vertical edge
@@ -782,7 +784,7 @@ test "medianFilterImage - noise reduction" {
     ctx.setImage(image);
 
     // Apply median filter
-    try basic.medianFilterImage(&ctx, .{3});
+    try filters.medianFilterImage(&ctx, .{3});
 
     const pixels = ctx.image.pixels.rgba32;
     // Center should be closer to surrounding pixels (median of 128,128,128,128,255,128,128,128,128 = 128)
@@ -799,7 +801,7 @@ test "addNoiseImage - noise addition" {
     ctx.setImage(image);
 
     // Add noise
-    try basic.addNoiseImage(&ctx, .{0.25});
+    try filters.addNoiseImage(&ctx, .{0.25});
 
     const pixels = ctx.image.pixels.rgba32;
     // Should have variation now
@@ -820,7 +822,7 @@ test "pixelateImage - pixelation effect" {
     ctx.setImage(image);
 
     // Apply pixelation
-    try basic.pixelateImage(&ctx, .{5});
+    try filters.pixelateImage(&ctx, .{5});
 
     const pixels = ctx.image.pixels.rgba32;
     // Should have blocky appearance
@@ -839,7 +841,7 @@ test "oilPaintingImage - oil paint effect" {
     ctx.setImage(image);
 
     // Apply oil painting effect
-    try basic.oilPaintingImage(&ctx, .{ 3, 10 });
+    try filters.oilPaintingImage(&ctx, .{ 3, 10 });
 
     // Effect should complete without error
     try testing.expect(ctx.image.width == 5);
@@ -860,7 +862,7 @@ test "flipImage - horizontal flip" {
     ctx.setImage(image);
 
     // Flip horizontal
-    try basic.flipImage(&ctx, .{"horizontal"});
+    try transforms.flipImage(&ctx, .{"horizontal"});
 
     const pixels = ctx.image.pixels.rgba32;
     // Should be reversed: Blue, Green, Red
@@ -886,7 +888,7 @@ test "flipImage - vertical flip" {
     ctx.setImage(image);
 
     // Flip vertical
-    try basic.flipImage(&ctx, .{"vertical"});
+    try transforms.flipImage(&ctx, .{"vertical"});
 
     const pixels = ctx.image.pixels.rgba32;
     // Should be reversed: Blue, Green, Red
@@ -913,7 +915,7 @@ test "rotateImage - 90 degrees clockwise" {
     ctx.setImage(image);
 
     // Rotate 90 degrees clockwise
-    try basic.rotateImage(&ctx, .{90});
+    try transforms.rotateImage(&ctx, .{90});
 
     try testing.expectEqual(@as(usize, 2), ctx.image.width);
     try testing.expectEqual(@as(usize, 2), ctx.image.height);
@@ -939,7 +941,7 @@ test "rotateImage - 180 degrees" {
     ctx.setImage(image);
 
     // Rotate 180 degrees
-    try basic.rotateImage(&ctx, .{180});
+    try transforms.rotateImage(&ctx, .{180});
 
     const pixels = ctx.image.pixels.rgba32;
     // After 180°: White should be at top-left
@@ -962,7 +964,7 @@ test "rotateImage - 270 degrees clockwise" {
     ctx.setImage(image);
 
     // Rotate 270 degrees clockwise
-    try basic.rotateImage(&ctx, .{270});
+    try transforms.rotateImage(&ctx, .{270});
 
     const pixels = ctx.image.pixels.rgba32;
     // After 270° clockwise: Green should be at top-left

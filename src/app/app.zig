@@ -1,7 +1,7 @@
 const std = @import("std");
 const types = @import("../core/types.zig");
 const utils = @import("../core/utils.zig");
-const cli = @import("../core/cli.zig");
+const argument_parser = @import("../core/argument_parser.zig");
 const worker = @import("../utils/worker.zig");
 
 fn initApp() !struct { allocator: std.mem.Allocator, args: []const []const u8 } {
@@ -30,24 +30,24 @@ fn parsePreFilenameOptions(ctx: *types.Context, args: []const []const u8, arg_in
         arg_index.* += 1;
 
         var consumed = false;
-        inline for (cli.registered_options) |option| {
-            if (cli.matchesOption(option.names, arg)) {
+        inline for (argument_parser.all_options) |option| {
+            if (argument_parser.matchesOption(option.names, arg)) {
                 consumed = true;
 
                 if (option.option_type == types.ArgType.Modifier) {
                     std.log.err("Expected an image path before modifier '{s}'", .{arg});
-                    try cli.printHelp(ctx, .{});
+                    try argument_parser.printHelp(ctx, .{});
                     return null;
                 }
 
                 const parsed = utils.parseArgsFromSlice(option.param_types, args, arg_index) catch |err| {
-                    cli.reportParseError(arg, option, err);
+                    argument_parser.reportParseError(arg, option, err);
                     return null;
                 };
 
                 try @call(.auto, option.func, .{ ctx, parsed });
 
-                if (option.func == cli.printHelp or option.func == cli.printModifiers) {
+                if (option.func == argument_parser.printHelp or option.func == argument_parser.printModifiers) {
                     return null;
                 }
 
@@ -71,7 +71,7 @@ fn loadImage(ctx: *types.Context, path: []const u8) !void {
     if (ctx.verbose) {
         std.log.info("Successfully loaded image from '{s}'", .{path});
         std.log.info("Image dimensions: {}x{}", .{ ctx.image.width, ctx.image.height });
-        try cli.printImageInfo(ctx, .{});
+        try argument_parser.printImageInfo(ctx, .{});
     }
 }
 
@@ -139,7 +139,7 @@ pub fn run() !void {
         }
     } else {
         std.log.err("No image file provided", .{});
-        try cli.printHelp(&ctx, .{});
+        try argument_parser.printHelp(&ctx, .{});
         return;
     }
 }

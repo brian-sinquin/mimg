@@ -1,7 +1,6 @@
 const std = @import("std");
 const types = @import("../core/types.zig");
 const utils = @import("../core/utils.zig");
-const cli = @import("../core/cli.zig");
 const modifiers = @import("modifiers.zig");
 const argument_parser = @import("../core/argument_parser.zig");
 
@@ -62,14 +61,14 @@ pub const Pipeline = struct {
 
     /// Add global option
     pub fn addGlobalOption(self: *Pipeline, option: types.Argument, args: []const []const u8) !void {
-        const duped_name = try self.ctx.allocator.dupe(u8, cli.getOptionName(option.names));
+        const duped_name = try self.ctx.allocator.dupe(u8, argument_parser.getOptionName(option.names));
         const duped_args = try self.ctx.allocator.dupe([]const u8, args);
         try self.operations.append(self.ctx.allocator, .{ .global_option = .{ .name = duped_name, .args = duped_args } });
     }
 
     /// Add modifier
     pub fn addModifier(self: *Pipeline, modifier: types.Argument, args: []const []const u8) !void {
-        const duped_name = try self.ctx.allocator.dupe(u8, cli.getOptionName(modifier.names));
+        const duped_name = try self.ctx.allocator.dupe(u8, argument_parser.getOptionName(modifier.names));
         const duped_args = try self.ctx.allocator.dupe([]const u8, args);
         try self.operations.append(self.ctx.allocator, .{ .modifier = .{ .name = duped_name, .args = duped_args } });
     }
@@ -91,15 +90,15 @@ pub const Pipeline = struct {
                     if (self.ctx.verbose) {
                         std.log.info("Successfully loaded image from '{s}'", .{path});
                         std.log.info("Image dimensions: {}x{}", .{ self.ctx.image.width, self.ctx.image.height });
-                        try cli.printImageInfo(self.ctx, .{});
+                        try argument_parser.printImageInfo(self.ctx, .{});
                     }
                 },
                 .apply_preset => {
-                    try cli.applyPreset(self.ctx);
+                    try argument_parser.applyPreset(self.ctx);
                 },
                 .global_option => |go| {
-                    const option = for (cli.registered_options) |opt| {
-                        if (std.mem.eql(u8, cli.getOptionName(opt.names), go.name)) break opt;
+                    const option = for (argument_parser.all_options) |opt| {
+                        if (std.mem.eql(u8, argument_parser.getOptionName(opt.names), go.name)) break opt;
                     } else {
                         std.log.err("Unknown global option: {s}", .{go.name});
                         return error.UnknownOption;
@@ -112,8 +111,8 @@ pub const Pipeline = struct {
                     try @call(.auto, option.func, .{ self.ctx, parsed });
                 },
                 .modifier => |mod| {
-                    const modifier = for (cli.registered_options) |opt| {
-                        if (std.mem.eql(u8, cli.getOptionName(opt.names), mod.name)) break opt;
+                    const modifier = for (argument_parser.all_options) |opt| {
+                        if (std.mem.eql(u8, argument_parser.getOptionName(opt.names), mod.name)) break opt;
                     } else {
                         std.log.err("Unknown modifier: {s}", .{mod.name});
                         return error.UnknownModifier;

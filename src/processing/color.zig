@@ -166,8 +166,58 @@ pub fn adjustVibrance(ctx: *Context, args: anytype) !void {
     utils.logVerbose(ctx, "Applying vibrance adjustment by {d:.2}", .{factor});
 
     const pixels = ctx.image.pixels.rgba32;
+    const pixel_count = pixels.len;
+    var i: usize = 0;
 
-    for (pixels) |*pixel| {
+    // Process in chunks of 4 pixels using SIMD
+    while (i + 4 <= pixel_count) : (i += 4) {
+        // Load 4 pixels into vectors
+        const r_vec: simd.Vec4f32 = [_]f32{
+            @as(f32, @floatFromInt(pixels[i].r)),
+            @as(f32, @floatFromInt(pixels[i + 1].r)),
+            @as(f32, @floatFromInt(pixels[i + 2].r)),
+            @as(f32, @floatFromInt(pixels[i + 3].r)),
+        };
+        const g_vec: simd.Vec4f32 = [_]f32{
+            @as(f32, @floatFromInt(pixels[i].g)),
+            @as(f32, @floatFromInt(pixels[i + 1].g)),
+            @as(f32, @floatFromInt(pixels[i + 2].g)),
+            @as(f32, @floatFromInt(pixels[i + 3].g)),
+        };
+        const b_vec: simd.Vec4f32 = [_]f32{
+            @as(f32, @floatFromInt(pixels[i].b)),
+            @as(f32, @floatFromInt(pixels[i + 1].b)),
+            @as(f32, @floatFromInt(pixels[i + 2].b)),
+            @as(f32, @floatFromInt(pixels[i + 3].b)),
+        };
+
+        // Apply vibrance adjustment using SIMD
+        const result = simd.adjustVibranceSIMD4(r_vec, g_vec, b_vec, factor);
+        const new_r_vec = simd.clampVec4F32ToU8(result[0]);
+        const new_g_vec = simd.clampVec4F32ToU8(result[1]);
+        const new_b_vec = simd.clampVec4F32ToU8(result[2]);
+
+        // Store back (preserve alpha)
+        pixels[i].r = new_r_vec[0];
+        pixels[i].g = new_g_vec[0];
+        pixels[i].b = new_b_vec[0];
+
+        pixels[i + 1].r = new_r_vec[1];
+        pixels[i + 1].g = new_g_vec[1];
+        pixels[i + 1].b = new_b_vec[1];
+
+        pixels[i + 2].r = new_r_vec[2];
+        pixels[i + 2].g = new_g_vec[2];
+        pixels[i + 2].b = new_b_vec[2];
+
+        pixels[i + 3].r = new_r_vec[3];
+        pixels[i + 3].g = new_g_vec[3];
+        pixels[i + 3].b = new_b_vec[3];
+    }
+
+    // Handle remaining pixels with scalar operations
+    while (i < pixel_count) : (i += 1) {
+        const pixel = &pixels[i];
         const rf = @as(f32, @floatFromInt(pixel.r));
         const gf = @as(f32, @floatFromInt(pixel.g));
         const bf = @as(f32, @floatFromInt(pixel.b));
@@ -509,4 +559,335 @@ pub fn posterizeImage(ctx: *Context, args: anytype) !void {
             pixels[idx].b = b_level;
         }
     }
+}
+
+pub fn adjustChannels(ctx: *Context, args: anytype) !void {
+    const red_mult = args[0];
+    const green_mult = args[1];
+    const blue_mult = args[2];
+
+    // Input validation
+    if (red_mult < 0.0 or red_mult > 2.0 or green_mult < 0.0 or green_mult > 2.0 or blue_mult < 0.0 or blue_mult > 2.0) {
+        std.log.err("Channel multipliers must be in range 0.0-2.0, got R:{d:.2} G:{d:.2} B:{d:.2}", .{ red_mult, green_mult, blue_mult });
+        return error.InvalidMultiplier;
+    }
+
+    try utils.convertToRgba32(ctx);
+
+    utils.logVerbose(ctx, "Adjusting channels - R:{d:.2} G:{d:.2} B:{d:.2}", .{ red_mult, green_mult, blue_mult });
+
+    const pixels = ctx.image.pixels.rgba32;
+    const multipliers = [_]f32{ red_mult, green_mult, blue_mult };
+
+    // Use SIMD processing for channel adjustment
+    const pixel_count = pixels.len;
+    var i: usize = 0;
+
+    // Process in chunks of 4 pixels
+    while (i + 4 <= pixel_count) : (i += 4) {
+        // Load 4 pixels
+        const r_vec: simd.Vec4f32 = [_]f32{
+            @as(f32, @floatFromInt(pixels[i].r)),
+            @as(f32, @floatFromInt(pixels[i + 1].r)),
+            @as(f32, @floatFromInt(pixels[i + 2].r)),
+            @as(f32, @floatFromInt(pixels[i + 3].r)),
+        };
+        const g_vec: simd.Vec4f32 = [_]f32{
+            @as(f32, @floatFromInt(pixels[i].g)),
+            @as(f32, @floatFromInt(pixels[i + 1].g)),
+            @as(f32, @floatFromInt(pixels[i + 2].g)),
+            @as(f32, @floatFromInt(pixels[i + 3].g)),
+        };
+        const b_vec: simd.Vec4f32 = [_]f32{
+            @as(f32, @floatFromInt(pixels[i].b)),
+            @as(f32, @floatFromInt(pixels[i + 1].b)),
+            @as(f32, @floatFromInt(pixels[i + 2].b)),
+            @as(f32, @floatFromInt(pixels[i + 3].b)),
+        };
+
+        // Apply multipliers
+        const new_r_vec = r_vec * @as(simd.Vec4f32, @splat(multipliers[0]));
+        const new_g_vec = g_vec * @as(simd.Vec4f32, @splat(multipliers[1]));
+        const new_b_vec = b_vec * @as(simd.Vec4f32, @splat(multipliers[2]));
+
+        // Clamp and convert back to u8
+        const clamped_r = simd.clampVec4F32ToU8(new_r_vec);
+        const clamped_g = simd.clampVec4F32ToU8(new_g_vec);
+        const clamped_b = simd.clampVec4F32ToU8(new_b_vec);
+
+        // Store back (preserve alpha)
+        pixels[i] = img.color.Rgba32{ .r = clamped_r[0], .g = clamped_g[0], .b = clamped_b[0], .a = pixels[i].a };
+        pixels[i + 1] = img.color.Rgba32{ .r = clamped_r[1], .g = clamped_g[1], .b = clamped_b[1], .a = pixels[i + 1].a };
+        pixels[i + 2] = img.color.Rgba32{ .r = clamped_r[2], .g = clamped_g[2], .b = clamped_b[2], .a = pixels[i + 2].a };
+        pixels[i + 3] = img.color.Rgba32{ .r = clamped_r[3], .g = clamped_g[3], .b = clamped_b[3], .a = pixels[i + 3].a };
+    }
+
+    // Handle remaining pixels
+    while (i < pixel_count) : (i += 1) {
+        const pixel = &pixels[i];
+        const new_r = @as(f32, @floatFromInt(pixel.r)) * red_mult;
+        const new_g = @as(f32, @floatFromInt(pixel.g)) * green_mult;
+        const new_b = @as(f32, @floatFromInt(pixel.b)) * blue_mult;
+
+        pixel.r = @as(u8, @intFromFloat(std.math.clamp(new_r, 0.0, 255.0)));
+        pixel.g = @as(u8, @intFromFloat(std.math.clamp(new_g, 0.0, 255.0)));
+        pixel.b = @as(u8, @intFromFloat(std.math.clamp(new_b, 0.0, 255.0)));
+    }
+}
+
+pub fn adjustHSL(ctx: *Context, args: anytype) !void {
+    const hue_shift = args[0];
+    const saturation_factor = args[1];
+    const lightness_factor = args[2];
+
+    // Input validation
+    if (hue_shift < -180.0 or hue_shift > 180.0) {
+        std.log.err("Hue shift must be in range -180.0 to 180.0, got {d}", .{hue_shift});
+        return error.InvalidHueShift;
+    }
+    if (saturation_factor < 0.0 or saturation_factor > 2.0) {
+        std.log.err("Saturation factor must be in range 0.0-2.0, got {d}", .{saturation_factor});
+        return error.InvalidSaturationFactor;
+    }
+    if (lightness_factor < 0.0 or lightness_factor > 2.0) {
+        std.log.err("Lightness factor must be in range 0.0-2.0, got {d}", .{lightness_factor});
+        return error.InvalidLightnessFactor;
+    }
+
+    try utils.convertToRgba32(ctx);
+
+    utils.logVerbose(ctx, "Adjusting HSL - H:{d:.1} S:{d:.2} L:{d:.2}", .{ hue_shift, saturation_factor, lightness_factor });
+
+    const pixels = ctx.image.pixels.rgba32;
+    const pixel_count = pixels.len;
+
+    // Process in chunks of 4 pixels using SIMD
+    var i: usize = 0;
+    while (i + 4 <= pixel_count) : (i += 4) {
+        // Load 4 pixels
+        const r_vec: simd.Vec4f32 = [_]f32{
+            @as(f32, @floatFromInt(pixels[i].r)),
+            @as(f32, @floatFromInt(pixels[i + 1].r)),
+            @as(f32, @floatFromInt(pixels[i + 2].r)),
+            @as(f32, @floatFromInt(pixels[i + 3].r)),
+        };
+        const g_vec: simd.Vec4f32 = [_]f32{
+            @as(f32, @floatFromInt(pixels[i].g)),
+            @as(f32, @floatFromInt(pixels[i + 1].g)),
+            @as(f32, @floatFromInt(pixels[i + 2].g)),
+            @as(f32, @floatFromInt(pixels[i + 3].g)),
+        };
+        const b_vec: simd.Vec4f32 = [_]f32{
+            @as(f32, @floatFromInt(pixels[i].b)),
+            @as(f32, @floatFromInt(pixels[i + 1].b)),
+            @as(f32, @floatFromInt(pixels[i + 2].b)),
+            @as(f32, @floatFromInt(pixels[i + 3].b)),
+        };
+
+        // Apply SIMD HSL adjustment
+        const result = simd.adjustHSL_SIMD4(r_vec, g_vec, b_vec, hue_shift, saturation_factor, lightness_factor);
+        const new_r_vec = result[0];
+        const new_g_vec = result[1];
+        const new_b_vec = result[2];
+
+        // Clamp and store back (preserve alpha)
+        pixels[i].r = @as(u8, @intFromFloat(std.math.clamp(new_r_vec[0], 0.0, 255.0)));
+        pixels[i].g = @as(u8, @intFromFloat(std.math.clamp(new_g_vec[0], 0.0, 255.0)));
+        pixels[i].b = @as(u8, @intFromFloat(std.math.clamp(new_b_vec[0], 0.0, 255.0)));
+
+        pixels[i + 1].r = @as(u8, @intFromFloat(std.math.clamp(new_r_vec[1], 0.0, 255.0)));
+        pixels[i + 1].g = @as(u8, @intFromFloat(std.math.clamp(new_g_vec[1], 0.0, 255.0)));
+        pixels[i + 1].b = @as(u8, @intFromFloat(std.math.clamp(new_b_vec[1], 0.0, 255.0)));
+
+        pixels[i + 2].r = @as(u8, @intFromFloat(std.math.clamp(new_r_vec[2], 0.0, 255.0)));
+        pixels[i + 2].g = @as(u8, @intFromFloat(std.math.clamp(new_g_vec[2], 0.0, 255.0)));
+        pixels[i + 2].b = @as(u8, @intFromFloat(std.math.clamp(new_b_vec[2], 0.0, 255.0)));
+
+        pixels[i + 3].r = @as(u8, @intFromFloat(std.math.clamp(new_r_vec[3], 0.0, 255.0)));
+        pixels[i + 3].g = @as(u8, @intFromFloat(std.math.clamp(new_g_vec[3], 0.0, 255.0)));
+        pixels[i + 3].b = @as(u8, @intFromFloat(std.math.clamp(new_b_vec[3], 0.0, 255.0)));
+    }
+
+    // Handle remaining pixels with scalar operations
+    while (i < pixel_count) : (i += 1) {
+        const pixel = &pixels[i];
+
+        const rf = @as(f32, @floatFromInt(pixel.r)) / 255.0;
+        const gf = @as(f32, @floatFromInt(pixel.g)) / 255.0;
+        const bf = @as(f32, @floatFromInt(pixel.b)) / 255.0;
+
+        // Convert RGB to HSL
+        var h: f32 = 0.0;
+        var s: f32 = 0.0;
+        var l: f32 = 0.0;
+        rgbToHsl(rf, gf, bf, &h, &s, &l);
+
+        // Adjust HSL values
+        h = @mod(h + hue_shift, 360.0);
+        if (h < 0.0) h += 360.0;
+
+        s = math.clamp(s * saturation_factor, 0.0, 1.0);
+        l = math.clamp(l * lightness_factor, 0.0, 1.0);
+
+        // Convert back to RGB
+        var new_r: f32 = 0.0;
+        var new_g: f32 = 0.0;
+        var new_b: f32 = 0.0;
+        hslToRgb(h, s, l, &new_r, &new_g, &new_b);
+
+        pixel.r = @as(u8, @intFromFloat(math.clamp(new_r * 255.0, 0.0, 255.0)));
+        pixel.g = @as(u8, @intFromFloat(math.clamp(new_g * 255.0, 0.0, 255.0)));
+        pixel.b = @as(u8, @intFromFloat(math.clamp(new_b * 255.0, 0.0, 255.0)));
+    }
+}
+
+/// Convert RGB (0-1) to HSL
+fn rgbToHsl(r: f32, g: f32, b: f32, h: *f32, s: *f32, l: *f32) void {
+    const max_val = @max(r, @max(g, b));
+    const min_val = @min(r, @min(g, b));
+    const delta = max_val - min_val;
+
+    // Lightness
+    l.* = (max_val + min_val) / 2.0;
+
+    // Saturation
+    if (delta == 0.0) {
+        s.* = 0.0;
+        h.* = 0.0; // Undefined, but set to 0
+    } else {
+        s.* = if (l.* < 0.5) delta / (max_val + min_val) else delta / (2.0 - max_val - min_val);
+
+        // Hue
+        if (max_val == r) {
+            h.* = (g - b) / delta;
+        } else if (max_val == g) {
+            h.* = 2.0 + (b - r) / delta;
+        } else {
+            h.* = 4.0 + (r - g) / delta;
+        }
+        h.* *= 60.0;
+        if (h.* < 0.0) h.* += 360.0;
+    }
+}
+
+/// Convert HSL to RGB (0-1)
+fn hslToRgb(h: f32, s: f32, l: f32, r: *f32, g: *f32, b: *f32) void {
+    if (s == 0.0) {
+        // Achromatic (gray)
+        r.* = l;
+        g.* = l;
+        b.* = l;
+        return;
+    }
+
+    const hue = h / 360.0;
+    const q = if (l < 0.5) l * (1.0 + s) else l + s - l * s;
+    const p = 2.0 * l - q;
+
+    r.* = hueToRgb(p, q, hue + 1.0 / 3.0);
+    g.* = hueToRgb(p, q, hue);
+    b.* = hueToRgb(p, q, hue - 1.0 / 3.0);
+}
+
+fn hueToRgb(p: f32, q: f32, t: f32) f32 {
+    var t_clamped = t;
+    if (t_clamped < 0.0) t_clamped += 1.0;
+    if (t_clamped > 1.0) t_clamped -= 1.0;
+
+    if (t_clamped < 1.0 / 6.0) return p + (q - p) * 6.0 * t_clamped;
+    if (t_clamped < 1.0 / 2.0) return q;
+    if (t_clamped < 2.0 / 3.0) return p + (q - p) * (2.0 / 3.0 - t_clamped) * 6.0;
+    return p;
+}
+
+pub fn equalizeAreaImage(ctx: *Context, args: anytype) !void {
+    const x = args[0];
+    const y = args[1];
+    const width = args[2];
+    const height = args[3];
+
+    // Input validation
+    if (x < 0 or y < 0 or width <= 0 or height <= 0) {
+        std.log.err("Area coordinates must be valid: x={}, y={}, w={}, h={}", .{ x, y, width, height });
+        return error.InvalidArea;
+    }
+
+    try utils.convertToRgba32(ctx);
+
+    utils.logVerbose(ctx, "Applying local histogram equalization to area {}x{} at ({}, {})", .{ width, height, x, y });
+    utils.logMemoryUsage(ctx, "Equalize area start");
+
+    const pixels = ctx.image.pixels.rgba32;
+    const img_width = ctx.image.width;
+    const img_height = ctx.image.height;
+
+    // Clamp area to image bounds
+    const area_x = @as(usize, @intCast(math.clamp(x, 0, @as(i32, @intCast(img_width - 1)))));
+    const area_y = @as(usize, @intCast(math.clamp(y, 0, @as(i32, @intCast(img_height - 1)))));
+    const area_width = @as(usize, @intCast(math.clamp(width, 1, @as(i32, @intCast(img_width - area_x)))));
+    const area_height = @as(usize, @intCast(math.clamp(height, 1, @as(i32, @intCast(img_height - area_y)))));
+
+    // Build histogram for luminance in the specified area
+    var histogram = [_]u32{0} ** 256;
+    for (area_y..area_y + area_height) |ay| {
+        for (area_x..area_x + area_width) |ax| {
+            const idx = ay * img_width + ax;
+            const pixel = pixels[idx];
+
+            const rf = @as(f32, @floatFromInt(pixel.r));
+            const gf = @as(f32, @floatFromInt(pixel.g));
+            const bf = @as(f32, @floatFromInt(pixel.b));
+            const luminance = 0.299 * rf + 0.587 * gf + 0.114 * bf;
+            const lum_idx = @as(usize, @intFromFloat(std.math.clamp(luminance, 0.0, 255.0)));
+            histogram[lum_idx] += 1;
+        }
+    }
+
+    // Build cumulative distribution function for the area
+    var cdf = [_]u32{0} ** 256;
+    cdf[0] = histogram[0];
+    for (1..256) |i| {
+        cdf[i] = cdf[i - 1] + histogram[i];
+    }
+
+    // Find minimum non-zero CDF value in the area
+    var cdf_min: u32 = cdf[0];
+    for (cdf) |value| {
+        if (value > 0 and value < cdf_min) {
+            cdf_min = value;
+        }
+    }
+
+    // Create lookup table for equalization
+    var lut = [_]u8{0} ** 256;
+    const divisor = @as(f32, @floatFromInt(area_width * area_height - cdf_min));
+    for (0..256) |i| {
+        const numerator = @as(f32, @floatFromInt(cdf[i] - cdf_min));
+        lut[i] = @as(u8, @intFromFloat(std.math.clamp((numerator / divisor) * 255.0, 0.0, 255.0)));
+    }
+
+    // Apply equalization to the specified area
+    for (area_y..area_y + area_height) |ay| {
+        for (area_x..area_x + area_width) |ax| {
+            const idx = ay * img_width + ax;
+
+            const pixel = pixels[idx];
+            const rf = @as(f32, @floatFromInt(pixel.r));
+            const gf = @as(f32, @floatFromInt(pixel.g));
+            const bf = @as(f32, @floatFromInt(pixel.b));
+
+            const old_lum = 0.299 * rf + 0.587 * gf + 0.114 * bf;
+            const old_lum_idx = @as(usize, @intFromFloat(std.math.clamp(old_lum, 0.0, 255.0)));
+            const new_lum = @as(f32, @floatFromInt(lut[old_lum_idx]));
+
+            // Preserve color ratios while adjusting luminance
+            const scale = if (old_lum > 0) new_lum / old_lum else 1.0;
+
+            pixels[idx].r = @as(u8, @intFromFloat(std.math.clamp(rf * scale, 0.0, 255.0)));
+            pixels[idx].g = @as(u8, @intFromFloat(std.math.clamp(gf * scale, 0.0, 255.0)));
+            pixels[idx].b = @as(u8, @intFromFloat(std.math.clamp(bf * scale, 0.0, 255.0)));
+        }
+    }
+
+    utils.logMemoryUsage(ctx, "Equalize area end");
 }

@@ -3,7 +3,7 @@ const types = @import("../core/types.zig");
 const utils = @import("../core/utils.zig");
 const progress = @import("../core/progress.zig");
 const img = @import("zigimg");
-const cli = @import("../core/cli.zig");
+const argument_parser = @import("../core/argument_parser.zig");
 const pipeline_mod = @import("../processing/pipeline.zig");
 
 /// Result of processing a single file
@@ -61,11 +61,11 @@ fn buildPipeline(ctx: *types.Context, filename: []const u8, args: []const []cons
     if (ctx.verbose) {
         std.log.info("Successfully loaded image from '{s}'", .{filename});
         std.log.info("Image dimensions: {}x{}", .{ ctx.image.width, ctx.image.height });
-        try cli.printImageInfo(ctx, .{});
+        try argument_parser.printImageInfo(ctx, .{});
     }
 
     // Apply preset if any
-    try cli.applyPreset(ctx);
+    try argument_parser.applyPreset(ctx);
 
     // Process arguments
     var arg_index = start_arg_index;
@@ -74,19 +74,16 @@ fn buildPipeline(ctx: *types.Context, filename: []const u8, args: []const []cons
         arg_index += 1;
 
         var found = false;
-        inline for (cli.registered_options) |option| {
-            if (cli.matchesOption(option.names, arg)) {
+        inline for (argument_parser.all_options) |option| {
+            if (argument_parser.matchesOption(option.names, arg)) {
                 found = true;
-                const args_start = arg_index;
-                _ = utils.parseArgsFromSlice(option.param_types, args, &arg_index) catch |parse_err| {
-                    cli.reportParseError(arg, option, parse_err);
+                // Strict argument parsing: no defaults for any modifier
+                const parsed = utils.parseArgsFromSlice(option.param_types, args, &arg_index) catch |parse_err| {
+                    argument_parser.reportParseError(arg, option, parse_err);
                     return types.CliError.InvalidArguments;
                 };
-                const consumed_args = args[args_start..arg_index];
 
-                // Execute the option or modifier immediately
-                var local_index: usize = 0;
-                const parsed = utils.parseArgsFromSlice(option.param_types, consumed_args, &local_index) catch unreachable;
+                // Execute the option or modifier immediately with parsed tuple (normal path)
                 try @call(.auto, option.func, .{ ctx, parsed });
 
                 break;
@@ -118,7 +115,7 @@ fn loadImage(ctx: *types.Context, path: []const u8) !void {
     if (ctx.verbose) {
         std.log.info("Successfully loaded image from '{s}'", .{path});
         std.log.info("Image dimensions: {}x{}", .{ ctx.image.width, ctx.image.height });
-        try cli.printImageInfo(ctx, .{});
+        try argument_parser.printImageInfo(ctx, .{});
     }
 }
 

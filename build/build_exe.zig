@@ -1,7 +1,7 @@
 const std = @import("std");
 
 // Import build config for version
-const build_config = @import("build.zig.zon");
+const build_config = @import("../build.zig.zon");
 
 pub fn createExe(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode, target_name: []const u8, enable_lto: bool, strip_symbols: bool, use_static: bool, cpu_features: ?[]const u8) *std.Build.Step.Compile {
     const release_version = std.process.getEnvVarOwned(b.allocator, "RELEASE_VERSION") catch "dev";
@@ -55,6 +55,7 @@ pub fn createExe(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.
     // Add version constant to the module
     const build_options = b.addOptions();
     build_options.addOption([]const u8, "version", build_config.version);
+    build_options.addOption(bool, "include_benchmarks", false);
     exe.root_module.addOptions("build_options", build_options);
 
     const zigimg_dependency = b.dependency("zigimg", .{

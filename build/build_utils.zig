@@ -12,10 +12,12 @@ pub fn generateGalleryFilename(allocator: std.mem.Allocator, args: []const []con
             try writer.writeByte('_');
         }
 
-        // Sanitize the argument by replacing dots with underscores
+        // Sanitize the argument by replacing dots with underscores and '#' with '0x'
         for (arg) |char| {
             if (char == '.') {
                 try writer.writeByte('_');
+            } else if (char == '#') {
+                try writer.writeAll("0x");
             } else {
                 try writer.writeByte(char);
             }
