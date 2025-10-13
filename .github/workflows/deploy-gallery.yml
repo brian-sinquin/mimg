@@ -27,7 +27,7 @@ jobs:
         version: 0.15.1
 
     - name: Build gallery
-      run: zig build gallery
+      run: zig build -Dgallery gallery
 
     - name: Setup Pages
       uses: actions/configure-pages@v4
