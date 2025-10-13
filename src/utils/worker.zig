@@ -1,6 +1,7 @@
 const std = @import("std");
 const types = @import("../core/types.zig");
 const utils = @import("../core/utils.zig");
+const progress = @import("../core/progress.zig");
 const img = @import("zigimg");
 const cli = @import("../core/cli.zig");
 const pipeline_mod = @import("../processing/pipeline.zig");
@@ -146,7 +147,7 @@ fn workerProcessFile(allocator: std.mem.Allocator, work_item: WorkItem) !WorkRes
 }
 
 /// Worker thread function that processes a batch of work items
-fn workerThread(allocator: std.mem.Allocator, work_items: std.ArrayList(WorkItem), results: []WorkResult, start_idx: usize, progress_bar: *utils.ProgressBar) void {
+fn workerThread(allocator: std.mem.Allocator, work_items: std.ArrayList(WorkItem), results: []WorkResult, start_idx: usize, progress_bar: *progress.ProgressBar, total_work: usize) void {
     var local_idx = start_idx;
     for (work_items.items) |work_item| {
         const result = workerProcessFile(allocator, work_item) catch |err| {
@@ -154,13 +155,13 @@ fn workerThread(allocator: std.mem.Allocator, work_items: std.ArrayList(WorkItem
             results[local_idx] = WorkResult{ .result = .failed_save, .filename = work_item.filename };
             local_idx += 1;
             progress_bar.increment();
-            progress_bar.update();
+            progress_bar.update(progress_bar.current.load(.monotonic), total_work) catch {};
             continue;
         };
         results[local_idx] = result;
         local_idx += 1;
         progress_bar.increment();
-        progress_bar.update();
+        progress_bar.update(progress_bar.current.load(.monotonic), total_work) catch {};
     }
     var mutable_work_items = work_items;
     mutable_work_items.deinit(allocator);
@@ -185,7 +186,7 @@ pub fn processFilesMultithreaded(
     const is_batch = filenames.len > 1;
 
     // Initialize progress bar
-    var progress_bar = utils.ProgressBar.init(filenames.len);
+    var progress_bar = progress.ProgressBar.init(filenames.len);
 
     // Divide work among threads
     const files_per_thread = filenames.len / actual_threads;
@@ -219,7 +220,7 @@ pub fn processFilesMultithreaded(
         }
 
         // Spawn thread with its work
-        const thread = std.Thread.spawn(.{}, workerThread, .{ allocator, thread_work, results.items, result_idx, &progress_bar }) catch |err| {
+        const thread = std.Thread.spawn(.{}, workerThread, .{ allocator, thread_work, results.items, result_idx, &progress_bar, filenames.len }) catch |err| {
             std.log.err("Failed to spawn thread {}: {}", .{ thread_idx, err });
             thread_work.deinit(allocator);
             start_idx = end_idx;
