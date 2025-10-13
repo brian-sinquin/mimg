@@ -9,3 +9,4 @@ zig-out/
 TODO
 examples/gallery/output/
 batch_tests/
+RELEASES.md

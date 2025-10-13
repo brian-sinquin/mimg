@@ -2,7 +2,7 @@ name: Pull Request Validation
 
 on:
   pull_request:
-    branches: [ main, master ]
+    branches: ['*']
 
 jobs:
   validate:
@@ -33,7 +33,7 @@ jobs:
         run: zig build -Doptimize=ReleaseSafe
 
       - name: Run tests
-        run: zig build test -Dtests
+        run: zig build -Dtests test 
 
       - name: Build gallery
-        run: zig build gallery
+        run: zig build -Dgallery gallery

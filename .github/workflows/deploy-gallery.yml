@@ -2,7 +2,7 @@ name: Deploy Gallery to GitHub Pages
 
 on:
   push:
-    branches: [ main, master, core ]
+    branches: [ main ]
   workflow_dispatch:
 
 permissions:
