@@ -551,3 +551,27 @@ pub const ProgressBar = struct {
         }
     }
 };
+
+/// Generate a sanitized filename from command line arguments for gallery examples
+pub fn generateGalleryFilename(allocator: std.mem.Allocator, args: []const []const u8) ![]const u8 {
+    var filename_parts = std.ArrayList(u8).init(allocator);
+    defer filename_parts.deinit();
+
+    for (args, 0..) |arg, i| {
+        if (i > 0) {
+            try filename_parts.append('_');
+        }
+
+        // Sanitize the argument by replacing dots with underscores
+        for (arg) |char| {
+            if (char == '.') {
+                try filename_parts.append('_');
+            } else {
+                try filename_parts.append(char);
+            }
+        }
+    }
+
+    try filename_parts.appendSlice("_lena.png");
+    return filename_parts.toOwnedSlice();
+}

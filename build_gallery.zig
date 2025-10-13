@@ -1,4 +1,5 @@
 const std = @import("std");
+const build_utils = @import("build_utils.zig");
 
 // Helper function to create gallery command for an example
 pub fn createGalleryCommand(b: *std.Build, exe: *std.Build.Step.Compile, example: anytype, gallery_step: *std.Build.Step) void {
@@ -9,34 +10,14 @@ pub fn createGalleryCommand(b: *std.Build, exe: *std.Build.Step.Compile, example
         gallery_cmd.addArg(arg);
     }
 
-    // Generate output filename, sanitizing dots in parameters
-    var output_name_buf: [128]u8 = undefined;
-    var output_name_len: usize = 0;
-
-    for (example.args, 0..) |arg, i| {
-        if (i > 0) {
-            @memcpy(output_name_buf[output_name_len .. output_name_len + 1], "_");
-            output_name_len += 1;
-        }
-
-        // Sanitize the argument by replacing dots with underscores
-        for (arg) |char| {
-            if (char == '.') {
-                output_name_buf[output_name_len] = '_';
-            } else {
-                output_name_buf[output_name_len] = char;
-            }
-            output_name_len += 1;
-        }
-    }
-
-    const output_filename = output_name_buf[0..output_name_len];
+    // Generate output filename
+    const output_filename = build_utils.generateGalleryFilename(b.allocator, example.args) catch @panic("Failed to generate gallery filename");
 
     // Use --output-dir and --output separately
     gallery_cmd.addArg("--output-dir");
     gallery_cmd.addArg("examples/gallery/output");
     gallery_cmd.addArg("--output");
-    gallery_cmd.addArg(b.dupe(output_filename));
+    gallery_cmd.addArg(output_filename);
 
     gallery_step.dependOn(&gallery_cmd.step);
 }

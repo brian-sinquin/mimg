@@ -3,16 +3,16 @@ const std = @import("std");
 // Import build config for version
 const build_config = @import("build.zig.zon");
 
-pub fn createExe(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode) *std.Build.Step.Compile {
+pub fn createExe(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode, target_name: []const u8, enable_lto: bool, strip_symbols: bool, use_static: bool) *std.Build.Step.Compile {
     const release_version = std.process.getEnvVarOwned(b.allocator, "RELEASE_VERSION") catch "dev";
-    const target_name = b.option([]const u8, "target-name", "Target name for binary") orelse "unknown";
+    // const target_name = b.option([]const u8, "target-name", "Target name for binary") orelse "unknown";
 
     // Build options for optimization
     // LTO is disabled by default to avoid compilation issues on Linux/macOS CI/CD environments
     // Enable with -Dlto=true for local release builds if desired
-    const enable_lto = b.option(bool, "lto", "Enable Link Time Optimization (slower builds, faster runtime)") orelse false;
-    const strip_symbols = b.option(bool, "strip", "Strip debug symbols (smaller binary)") orelse (optimize != .Debug);
-    const use_static = b.option(bool, "static", "Force static linking") orelse false;
+    // const enable_lto = b.option(bool, "lto", "Enable Link Time Optimization (slower builds, faster runtime)") orelse false;
+    // const strip_symbols = b.option(bool, "strip", "Strip debug symbols (smaller binary)") orelse (optimize != .Debug);
+    // const use_static = b.option(bool, "static", "Force static linking") orelse false;
 
     const exe = b.addExecutable(.{
         .name = b.fmt("{s}-v{s}-{s}", .{ "mimg", release_version, target_name }),

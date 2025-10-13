@@ -77,6 +77,7 @@ pub const Context = struct {
     temp_buffer_size: usize = 0, // Track allocated size for reuse
     preset_path: ?[]const u8 = null, // Path to preset file
     is_batch: bool = false, // Whether processing multiple files
+    image_cache: std.StringHashMap(img.Image) = undefined, // Cache for loaded images
 
     pub fn init(allocator: std.mem.Allocator) Context {
         return .{
@@ -92,6 +93,7 @@ pub const Context = struct {
             .temp_buffer_size = 0,
             .preset_path = null,
             .is_batch = false,
+            .image_cache = std.StringHashMap(img.Image).init(allocator),
         };
     }
 
@@ -147,6 +149,13 @@ pub const Context = struct {
         if (self.preset_path) |path| {
             self.allocator.free(path);
         }
+        // Clean up image cache
+        var cache_iter = self.image_cache.iterator();
+        while (cache_iter.next()) |entry| {
+            self.allocator.free(entry.key_ptr.*);
+            entry.value_ptr.deinit(self.allocator);
+        }
+        self.image_cache.deinit();
         // Note: output_extension is not freed as it's usually a string literal
     }
 

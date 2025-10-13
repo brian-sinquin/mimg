@@ -1,5 +1,20 @@
 const types = @import("../core/types.zig");
-const basic = @import("basic.zig");
+const color = @import("color.zig");
+const filters = @import("filters.zig");
+const transforms = @import("transforms.zig");
+const std = @import("std");
+
+// Wrapper function for flip that handles string parsing
+fn flipImage(ctx: *types.Context, args: anytype) !void {
+    const direction = args[0];
+    if (std.mem.eql(u8, direction, "horizontal")) {
+        try transforms.flipHorizontalImage(ctx, .{});
+    } else if (std.mem.eql(u8, direction, "vertical")) {
+        try transforms.flipVerticalImage(ctx, .{});
+    } else {
+        return error.InvalidParameters;
+    }
+}
 
 // All image modifier definitions
 pub const modifiers = [_]types.Argument{
@@ -9,7 +24,7 @@ pub const modifiers = [_]types.Argument{
         .param_types = &[_]type{},
         .description = "Invert the colors of the current image",
         .usage = "invert",
-        .func = basic.invertColors,
+        .func = color.invertColors,
     },
     .{
         .names = .{ .single = "resize" },
@@ -17,7 +32,7 @@ pub const modifiers = [_]types.Argument{
         .param_types = &[_]type{ u16, u16 },
         .description = "Resize the image using nearest-neighbor sampling",
         .usage = "resize <width> <height>",
-        .func = basic.resizeImage,
+        .func = transforms.resizeImage,
     },
     .{
         .names = .{ .single = "crop" },
@@ -25,7 +40,7 @@ pub const modifiers = [_]types.Argument{
         .param_types = &[_]type{ u16, u16, u16, u16 },
         .description = "Crop the image using top-left coordinate and size",
         .usage = "crop <x> <y> <width> <height>",
-        .func = basic.cropImage,
+        .func = transforms.cropImage,
     },
     .{
         .names = .{ .single = "rotate" },
@@ -33,7 +48,7 @@ pub const modifiers = [_]types.Argument{
         .param_types = &[_]type{f64},
         .description = "Rotate the image clockwise by any angle (auto-resizes canvas)",
         .usage = "rotate <degrees>",
-        .func = basic.rotateImage,
+        .func = transforms.rotateImage,
     },
     .{
         .names = .{ .single = "flip" },
@@ -41,7 +56,7 @@ pub const modifiers = [_]types.Argument{
         .param_types = &[_]type{[]const u8},
         .description = "Flip the image horizontally or vertically",
         .usage = "flip <horizontal|vertical>",
-        .func = basic.flipImage,
+        .func = flipImage,
     },
     .{
         .names = .{ .single = "grayscale" },
@@ -49,7 +64,7 @@ pub const modifiers = [_]types.Argument{
         .param_types = &[_]type{},
         .description = "Convert the image to grayscale",
         .usage = "grayscale",
-        .func = basic.grayscaleImage,
+        .func = color.grayscaleImage,
     },
     .{
         .names = .{ .single = "brightness" },
@@ -57,7 +72,7 @@ pub const modifiers = [_]types.Argument{
         .param_types = &[_]type{i8},
         .description = "Adjust image brightness",
         .usage = "brightness <value (-128 to 127)>",
-        .func = basic.adjustBrightness,
+        .func = color.adjustBrightness,
     },
     .{
         .names = .{ .single = "blur" },
@@ -65,7 +80,7 @@ pub const modifiers = [_]types.Argument{
         .param_types = &[_]type{u8},
         .description = "Apply a simple box blur",
         .usage = "blur <kernel_size (odd)>",
-        .func = basic.blurImage,
+        .func = filters.blurImage,
     },
     .{
         .names = .{ .single = "saturation" },
@@ -73,7 +88,7 @@ pub const modifiers = [_]types.Argument{
         .param_types = &[_]type{f32},
         .description = "Adjust color saturation",
         .usage = "saturation <factor>",
-        .func = basic.adjustSaturation,
+        .func = color.adjustSaturation,
     },
     .{
         .names = .{ .single = "contrast" },
@@ -81,7 +96,7 @@ pub const modifiers = [_]types.Argument{
         .param_types = &[_]type{f32},
         .description = "Adjust image contrast",
         .usage = "contrast <factor>",
-        .func = basic.adjustContrast,
+        .func = color.adjustContrast,
     },
     .{
         .names = .{ .single = "gamma" },
@@ -89,7 +104,7 @@ pub const modifiers = [_]types.Argument{
         .param_types = &[_]type{f32},
         .description = "Apply gamma correction",
         .usage = "gamma <value>",
-        .func = basic.adjustGamma,
+        .func = color.adjustGamma,
     },
     .{
         .names = .{ .single = "sepia" },
@@ -97,7 +112,7 @@ pub const modifiers = [_]types.Argument{
         .param_types = &[_]type{},
         .description = "Apply sepia tone effect",
         .usage = "sepia",
-        .func = basic.applySepia,
+        .func = color.applySepia,
     },
     .{
         .names = .{ .single = "sharpen" },
@@ -105,7 +120,7 @@ pub const modifiers = [_]types.Argument{
         .param_types = &[_]type{},
         .description = "Sharpen the image",
         .usage = "sharpen",
-        .func = basic.sharpenImage,
+        .func = filters.sharpenImage,
     },
     .{
         .names = .{ .single = "gaussian-blur" },
@@ -113,7 +128,7 @@ pub const modifiers = [_]types.Argument{
         .param_types = &[_]type{f32},
         .description = "Apply Gaussian blur with configurable sigma",
         .usage = "gaussian-blur <sigma>",
-        .func = basic.gaussianBlurImage,
+        .func = filters.gaussianBlurImage,
     },
     .{
         .names = .{ .single = "emboss" },
@@ -121,7 +136,7 @@ pub const modifiers = [_]types.Argument{
         .param_types = &[_]type{},
         .description = "Apply emboss effect for 3D-like appearance",
         .usage = "emboss",
-        .func = basic.embossImage,
+        .func = filters.embossImage,
     },
     .{
         .names = .{ .single = "vignette" },
@@ -129,7 +144,7 @@ pub const modifiers = [_]types.Argument{
         .param_types = &[_]type{f32},
         .description = "Apply vignette effect to darken image corners",
         .usage = "vignette <intensity (0.0-1.0)>",
-        .func = basic.vignetteImage,
+        .func = filters.vignetteImage,
     },
     .{
         .names = .{ .single = "posterize" },
@@ -137,7 +152,7 @@ pub const modifiers = [_]types.Argument{
         .param_types = &[_]type{u8},
         .description = "Reduce color levels for artistic poster effect",
         .usage = "posterize <levels (2-256)>",
-        .func = basic.posterizeImage,
+        .func = color.posterizeImage,
     },
     .{
         .names = .{ .single = "hue-shift" },
@@ -145,7 +160,7 @@ pub const modifiers = [_]types.Argument{
         .param_types = &[_]type{f32},
         .description = "Shift the hue of all colors in the image",
         .usage = "hue-shift <degrees (-180 to 180)>",
-        .func = basic.hueShiftImage,
+        .func = color.hueShiftImage,
     },
     .{
         .names = .{ .single = "median-filter" },
@@ -153,7 +168,7 @@ pub const modifiers = [_]types.Argument{
         .param_types = &[_]type{u8},
         .description = "Apply median filter for noise reduction",
         .usage = "median-filter <kernel_size (odd)>",
-        .func = basic.medianFilterImage,
+        .func = filters.medianFilterImage,
     },
     .{
         .names = .{ .single = "threshold" },
@@ -161,7 +176,7 @@ pub const modifiers = [_]types.Argument{
         .param_types = &[_]type{u8},
         .description = "Convert image to pure black and white based on luminance threshold",
         .usage = "threshold <value (0-255)>",
-        .func = basic.thresholdImage,
+        .func = color.thresholdImage,
     },
     .{
         .names = .{ .single = "solarize" },
@@ -169,7 +184,7 @@ pub const modifiers = [_]types.Argument{
         .param_types = &[_]type{u8},
         .description = "Invert colors above threshold for artistic effect",
         .usage = "solarize <threshold (0-255)>",
-        .func = basic.solarizeImage,
+        .func = color.solarizeImage,
     },
     .{
         .names = .{ .single = "edge-detect" },
@@ -177,7 +192,7 @@ pub const modifiers = [_]types.Argument{
         .param_types = &[_]type{},
         .description = "Detect edges using Sobel operator",
         .usage = "edge-detect",
-        .func = basic.edgeDetectImage,
+        .func = filters.edgeDetectImage,
     },
     .{
         .names = .{ .single = "pixelate" },
@@ -185,7 +200,7 @@ pub const modifiers = [_]types.Argument{
         .param_types = &[_]type{u8},
         .description = "Apply pixelation/mosaic effect",
         .usage = "pixelate <block_size>",
-        .func = basic.pixelateImage,
+        .func = filters.pixelateImage,
     },
     .{
         .names = .{ .single = "noise" },
@@ -193,7 +208,7 @@ pub const modifiers = [_]types.Argument{
         .param_types = &[_]type{f32},
         .description = "Add random noise to image",
         .usage = "noise <amount (0.0-1.0)>",
-        .func = basic.addNoiseImage,
+        .func = filters.addNoiseImage,
     },
     .{
         .names = .{ .single = "exposure" },
@@ -201,7 +216,7 @@ pub const modifiers = [_]types.Argument{
         .param_types = &[_]type{f32},
         .description = "Adjust exposure (like camera EV)",
         .usage = "exposure <value (-2.0 to 2.0)>",
-        .func = basic.adjustExposure,
+        .func = color.adjustExposure,
     },
     .{
         .names = .{ .single = "vibrance" },
@@ -209,7 +224,7 @@ pub const modifiers = [_]types.Argument{
         .param_types = &[_]type{f32},
         .description = "Adjust vibrance (smart saturation)",
         .usage = "vibrance <factor>",
-        .func = basic.adjustVibrance,
+        .func = color.adjustVibrance,
     },
     .{
         .names = .{ .single = "equalize" },
@@ -217,7 +232,7 @@ pub const modifiers = [_]types.Argument{
         .param_types = &[_]type{},
         .description = "Apply histogram equalization for better contrast",
         .usage = "equalize",
-        .func = basic.equalizeImage,
+        .func = color.equalizeImage,
     },
     .{
         .names = .{ .single = "colorize" },
@@ -225,7 +240,7 @@ pub const modifiers = [_]types.Argument{
         .param_types = &[_]type{ u8, u8, u8, f32 },
         .description = "Colorize/tint image with RGB color",
         .usage = "colorize <r> <g> <b> <intensity (0.0-1.0)>",
-        .func = basic.colorizeImage,
+        .func = color.colorizeImage,
     },
     .{
         .names = .{ .single = "duotone" },
@@ -233,7 +248,7 @@ pub const modifiers = [_]types.Argument{
         .param_types = &[_]type{ u8, u8, u8, u8, u8, u8 },
         .description = "Apply duotone effect (Spotify-style)",
         .usage = "duotone <dark_r> <dark_g> <dark_b> <light_r> <light_g> <light_b>",
-        .func = basic.duotoneImage,
+        .func = color.duotoneImage,
     },
     .{
         .names = .{ .single = "oil-painting" },
@@ -241,6 +256,6 @@ pub const modifiers = [_]types.Argument{
         .param_types = &[_]type{usize},
         .description = "Apply oil painting artistic effect",
         .usage = "oil-painting <radius>",
-        .func = basic.oilPaintingImage,
+        .func = filters.oilPaintingImage,
     },
 };

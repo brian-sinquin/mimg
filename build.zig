@@ -2,6 +2,22 @@ const std = @import("std");
 const build_exe = @import("build_exe.zig");
 const build_gallery = @import("build_gallery.zig");
 
+fn createModuleWithZigimg(b: *std.Build, root_source_file: []const u8, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode) *std.Build.Module {
+    const module = b.createModule(.{
+        .root_source_file = b.path(root_source_file),
+        .target = target,
+        .optimize = optimize,
+    });
+
+    const zigimg_dependency = b.dependency("zigimg", .{
+        .target = target,
+        .optimize = optimize,
+    });
+    module.addImport("zigimg", zigimg_dependency.module("zigimg"));
+
+    return module;
+}
+
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
@@ -11,9 +27,13 @@ pub fn build(b: *std.Build) void {
     const enable_gallery = true; // b.option(bool, "gallery", "Enable gallery generation") orelse false;
     const enable_tests = b.option(bool, "tests", "Enable test building") orelse false;
     const enable_benchmarks = b.option(bool, "benchmarks", "Enable benchmark building") orelse false;
+    const target_name = b.option([]const u8, "target-name", "Target name for binary") orelse "unknown";
+    const enable_lto = b.option(bool, "lto", "Enable Link Time Optimization (slower builds, faster runtime)") orelse false;
+    const strip_symbols = b.option(bool, "strip", "Strip debug symbols (smaller binary)") orelse (optimize != .Debug);
+    const use_static = b.option(bool, "static", "Force static linking") orelse false;
 
     // Create main executable
-    const exe = build_exe.createExe(b, target, optimize);
+    const exe = build_exe.createExe(b, target, optimize, target_name, enable_lto, strip_symbols, use_static);
 
     // Run step
     const run_step = b.step("run", "Run the app");
@@ -42,18 +62,7 @@ pub fn build(b: *std.Build) void {
         });
 
         // Add separate test for our test file with proper dependencies
-        const unit_test_module = b.createModule(.{
-            .root_source_file = b.path("src/main.zig"),
-            .target = target,
-            .optimize = optimize,
-        });
-
-        // Add zigimg dependency to the test module
-        const zigimg_dependency = b.dependency("zigimg", .{
-            .target = target,
-            .optimize = optimize,
-        });
-        unit_test_module.addImport("zigimg", zigimg_dependency.module("zigimg"));
+        const unit_test_module = createModuleWithZigimg(b, "src/main.zig", target, optimize);
 
         const unit_tests = b.addTest(.{
             .root_module = unit_test_module,
@@ -69,18 +78,7 @@ pub fn build(b: *std.Build) void {
 
     // Benchmarks (only if enabled)
     if (enable_benchmarks) {
-        const benchmark_module = b.createModule(.{
-            .root_source_file = b.path("src/testing/benchmarks.zig"),
-            .target = target,
-            .optimize = optimize,
-        });
-
-        // Add zigimg dependency to the benchmark module
-        const zigimg_dependency = b.dependency("zigimg", .{
-            .target = target,
-            .optimize = optimize,
-        });
-        benchmark_module.addImport("zigimg", zigimg_dependency.module("zigimg"));
+        const benchmark_module = createModuleWithZigimg(b, "src/testing/benchmarks.zig", target, optimize);
 
         const benchmarks = b.addTest(.{
             .root_module = benchmark_module,
@@ -92,7 +90,20 @@ pub fn build(b: *std.Build) void {
         benchmark_step.dependOn(&run_benchmarks.step);
     }
 
-    // Quick build step for development
+    // Quick build step for development (always Debug, no LTO)
     const quick_build_step = b.step("quick", "Quick development build (Debug, no LTO)");
-    quick_build_step.dependOn(b.getInstallStep());
+    const quick_exe = build_exe.createExe(b, target, .Debug, target_name, false, false, false);
+    quick_build_step.dependOn(&quick_exe.step);
+
+    // Clean step
+    const clean_step = b.step("clean", "Clean build artifacts");
+    clean_step.makeFn = struct {
+        pub fn make(_: *std.Build.Step, options: std.Build.Step.MakeOptions) !void {
+            _ = options;
+            const fs = std.fs;
+            const cwd = fs.cwd();
+            _ = cwd.deleteTree("zig-out") catch {};
+            _ = cwd.deleteTree("zig-cache") catch {};
+        }
+    }.make;
 }

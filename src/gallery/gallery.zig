@@ -1,6 +1,32 @@
 const std = @import("std");
 const gallery_data = @import("gallery_data.zig");
 
+// Helper function to generate gallery filename
+fn generateGalleryFilename(allocator: std.mem.Allocator, args: []const []const u8) ![]const u8 {
+    var filename_parts = try std.ArrayList(u8).initCapacity(allocator, 256);
+    defer filename_parts.deinit(allocator);
+
+    var writer = filename_parts.writer(allocator);
+
+    for (args, 0..) |arg, i| {
+        if (i > 0) {
+            try writer.writeByte('_');
+        }
+
+        // Sanitize the argument by replacing dots with underscores
+        for (arg) |char| {
+            if (char == '.') {
+                try writer.writeByte('_');
+            } else {
+                try writer.writeByte(char);
+            }
+        }
+    }
+
+    try writer.writeAll("_lena.png");
+    return try filename_parts.toOwnedSlice(allocator);
+}
+
 pub fn main() !void {
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     defer arena.deinit();
@@ -17,7 +43,7 @@ pub fn main() !void {
     defer individual_modifiers.deinit(allocator);
 
     for (gallery_data.individual_modifiers) |modifier| {
-        try writeExampleSection(individual_modifiers.writer(allocator), modifier);
+        try writeExampleSection(individual_modifiers.writer(allocator), modifier, allocator);
     }
 
     // Generate combinations section
@@ -25,7 +51,7 @@ pub fn main() !void {
     defer combinations.deinit(allocator);
 
     for (gallery_data.combinations) |combo| {
-        try writeExampleSection(combinations.writer(allocator), combo);
+        try writeExampleSection(combinations.writer(allocator), combo, allocator);
     }
 
     // Replace placeholders in template
@@ -54,10 +80,9 @@ pub fn main() !void {
 }
 
 // Helper function to write example section
-fn writeExampleSection(writer: anytype, example: gallery_data.GalleryExample) !void {
+fn writeExampleSection(writer: anytype, example: gallery_data.GalleryExample, allocator: std.mem.Allocator) !void {
     var name_buf: [64]u8 = undefined;
     var desc_buf: [128]u8 = undefined;
-    var img_buf: [512]u8 = undefined;
 
     const name_str = try std.fmt.bufPrint(&name_buf, "### {s}\n\n", .{example.name});
     try writer.writeAll(name_str);
@@ -65,30 +90,11 @@ fn writeExampleSection(writer: anytype, example: gallery_data.GalleryExample) !v
     const desc_str = try std.fmt.bufPrint(&desc_buf, "{s}\n\n", .{example.description});
     try writer.writeAll(desc_str);
 
-    // Build filename directly in the image markdown
-    var filename_part: [256]u8 = undefined;
-    var filename_len: usize = 0;
+    // Build filename using utility function
+    const filename = try generateGalleryFilename(allocator, example.args);
+    defer allocator.free(filename);
 
-    for (example.args, 0..) |arg, i| {
-        if (i > 0) {
-            filename_part[filename_len] = '_';
-            filename_len += 1;
-        }
-
-        // Sanitize the argument by replacing dots with underscores
-        for (arg) |char| {
-            if (char == '.') {
-                filename_part[filename_len] = '_';
-            } else {
-                filename_part[filename_len] = char;
-            }
-            filename_len += 1;
-        }
-    }
-    @memcpy(filename_part[filename_len .. filename_len + 9], "_lena.png");
-    filename_len += 9;
-
-    const filename = filename_part[0..filename_len];
+    var img_buf: [512]u8 = undefined;
     const img_str = try std.fmt.bufPrint(&img_buf, "![{s}](output/{s})\n\n", .{ example.name, filename });
     try writer.writeAll(img_str);
 }
