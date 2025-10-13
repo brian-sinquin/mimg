@@ -35,7 +35,7 @@ pub fn main() !void {
     const cwd = std.fs.cwd();
 
     // Read template file
-    const template_content = try cwd.readFileAlloc(allocator, "examples/gallery/gallery.md.temp", 10 * 1024);
+    const template_content = try cwd.readFileAlloc(allocator, "examples/gallery/gallery.html.temp", 10 * 1024);
     defer allocator.free(template_content);
 
     // Generate individual modifiers section
@@ -70,13 +70,13 @@ pub fn main() !void {
         }
     }
 
-    // Write final gallery.md
-    const file = try cwd.createFile("examples/gallery/gallery.md", .{});
+    // Write final gallery.html
+    const file = try cwd.createFile("examples/gallery/gallery.html", .{});
     defer file.close();
 
     try file.writeAll(output.items);
 
-    std.log.info("Generated examples/gallery/gallery.md gallery", .{});
+    std.log.info("Generated examples/gallery/gallery.html gallery", .{});
 }
 
 // Helper function to write example section

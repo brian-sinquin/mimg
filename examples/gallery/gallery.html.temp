@@ -1,109 +1,100 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🎨 MIMG Gallery</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-            background: #f5f5f5;
-        }
-        .header {
-            text-align: center;
-            margin-bottom: 40px;
-        }
-        .gallery-section {
-            margin-bottom: 60px;
-        }
-        .gallery-section h2 {
-            color: #333;
-            border-bottom: 2px solid #007acc;
-            padding-bottom: 10px;
-        }
-        .image-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 20px;
-            margin-top: 20px;
-        }
-        .image-item {
-            background: white;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            transition: transform 0.2s;
-        }
-        .image-item:hover {
-            transform: translateY(-2px);
-        }
-        .image-item img {
-            width: 100%;
-            height: 200px;
-            object-fit: cover;
-        }
-        .image-info {
-            padding: 15px;
-        }
-        .image-title {
-            font-weight: bold;
-            color: #333;
-            margin-bottom: 5px;
-        }
-        .image-description {
-            color: #666;
-            font-size: 14px;
-        }
-        .original-image {
-            text-align: center;
-            margin-bottom: 40px;
-        }
-        .original-image img {
-            max-width: 400px;
-            border-radius: 8px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.2);
-        }
-        .footer {
-            text-align: center;
-            color: #666;
-            margin-top: 40px;
-            padding-top: 20px;
-            border-top: 1px solid #ddd;
-        }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <h1>🎨 MIMG Gallery</h1>
-        <p>Visual showcase of all available image processing modifiers.</p>
-        <p><em>All examples generated from the standard <code>lena.png</code> test image. For complete documentation, see the <a href="../../README.md">main README</a>.</em></p>
-    </div>
+<style>
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    background: #f5f5f5;
+}
+.header {
+    text-align: center;
+    margin-bottom: 40px;
+}
+.gallery-section {
+    margin-bottom: 60px;
+}
+.gallery-section h2 {
+    color: #333;
+    border-bottom: 2px solid #007acc;
+    padding-bottom: 10px;
+}
+.image-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+.image-item {
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transition: transform 0.2s;
+}
+.image-item:hover {
+    transform: translateY(-2px);
+}
+.image-item img {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+}
+.image-info {
+    padding: 15px;
+}
+.image-title {
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 5px;
+}
+.image-description {
+    color: #666;
+    font-size: 14px;
+}
+.original-image {
+    text-align: center;
+    margin-bottom: 40px;
+}
+.original-image img {
+    max-width: 400px;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+}
+.footer {
+    text-align: center;
+    color: #666;
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 1px solid #ddd;
+}
+</style>
 
-    <div class="original-image">
-        <h2>Original Image</h2>
-        <img src="lena.png" alt="Original Lena image">
-    </div>
+<div class="header">
+    <h1>🎨 MIMG Gallery</h1>
+    <p>Visual showcase of all available image processing modifiers.</p>
+    <p><em>All examples generated from the standard <code>lena.png</code> test image. For complete documentation, see the <a href="https://github.com/brian-sinquin/mimg" target="_blank">GitHub Repository</a>.</em></p>
+</div>
 
-    <div class="gallery-section">
-        <h2>Individual Modifiers</h2>
-        <div class="image-grid">
-            {{INDIVIDUAL_MODIFIERS}}
-        </div>
-    </div>
+<div class="original-image">
+    <h2>Original Image</h2>
+    <img src="lena.png" alt="Original Lena image">
+</div>
 
-    <div class="gallery-section">
-        <h2>Creative Combinations</h2>
-        <div class="image-grid">
-            {{MODIFIER_COMBINATIONS}}
-        </div>
+<div class="gallery-section">
+    <h2>Individual Modifiers</h2>
+    <div class="image-grid">
+        {{INDIVIDUAL_MODIFIERS}}
     </div>
+</div>
 
-    <div class="footer">
-        <p><em>Generated automatically by <code>zig build gallery</code></em><br>
-        <em>See <a href="../../README.md">README.md</a> for full documentation and usage examples</em></p>
+<div class="gallery-section">
+    <h2>Creative Combinations</h2>
+    <div class="image-grid">
+        {{MODIFIER_COMBINATIONS}}
     </div>
-</body>
-</html>
+</div>
+
+<div class="footer">
+    <p><em>Generated automatically by <code>zig build gallery</code></em><br>
+    <em>See <a href="https://github.com/brian-sinquin/mimg" target="_blank">GitHub Repository</a> for full documentation and usage examples</em></p>
+</div>

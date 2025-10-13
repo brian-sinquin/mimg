@@ -1,0 +1,56 @@
+name: Deploy Gallery to GitHub Pages
+
+on:
+  push:
+    branches: [ main, master, core ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup Zig
+      uses: goto-bus-stop/setup-zig@v2
+      with:
+        version: 0.15.1
+
+    - name: Build gallery
+      run: zig build gallery
+
+    - name: Setup Pages
+      uses: actions/configure-pages@v4
+
+    - name: Create gallery directory for Pages
+      run: |
+        mkdir -p gallery-deploy
+        cp examples/gallery/gallery.html gallery-deploy/index.html
+        cp examples/gallery/lena.png gallery-deploy/
+        cp -r examples/gallery/output gallery-deploy/
+
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: ./gallery-deploy
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4

@@ -6,3 +6,6 @@ zig-out/
 *.gif
 *.bmp
 *.tiff
+TODO
+examples/gallery/output/
+batch_tests/
