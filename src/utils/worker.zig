@@ -59,10 +59,6 @@ pub fn processFile(ctx: *types.Context, filename: []const u8, args: []const []co
         return .failed_save;
     };
 
-    if (ctx.is_batch) {
-        std.log.info("Processed '{s}'", .{filename});
-    }
-
     return .processed;
 }
 
@@ -119,16 +115,21 @@ fn saveImage(ctx: *types.Context) !void {
     }
 }
 
-/// Process a single work item in a worker thread
+/// Process a work item in a worker thread
 fn workerProcessFile(allocator: std.mem.Allocator, work_item: WorkItem) !WorkResult {
-    var ctx = types.Context.init(allocator);
+    // Use arena allocator for this file's processing to optimize memory usage
+    var arena = std.heap.ArenaAllocator.init(allocator);
+    defer arena.deinit();
+    const arena_allocator = arena.allocator();
+
+    var ctx = types.Context.init(arena_allocator);
     defer ctx.deinit();
 
     // Copy flags from work item to context
     ctx.verbose = work_item.verbose;
     ctx.is_batch = work_item.is_batch;
     if (work_item.preset_path) |path| {
-        ctx.preset_path = allocator.dupe(u8, path) catch unreachable;
+        ctx.preset_path = try arena_allocator.dupe(u8, path);
     }
 
     const result = processFile(&ctx, work_item.filename, work_item.args, work_item.start_arg_index);
@@ -139,17 +140,21 @@ fn workerProcessFile(allocator: std.mem.Allocator, work_item: WorkItem) !WorkRes
 }
 
 /// Worker thread function that processes a batch of work items
-fn workerThread(allocator: std.mem.Allocator, work_items: std.ArrayList(WorkItem), results: []WorkResult, start_idx: usize) void {
+fn workerThread(allocator: std.mem.Allocator, work_items: std.ArrayList(WorkItem), results: []WorkResult, start_idx: usize, progress_bar: *utils.ProgressBar) void {
     var local_idx = start_idx;
     for (work_items.items) |work_item| {
         const result = workerProcessFile(allocator, work_item) catch |err| {
-            std.log.err("Worker thread error processing '{}': {}", .{ work_item.filename, err });
+            std.log.err("Worker thread error processing '{s}': {}", .{ work_item.filename, err });
             results[local_idx] = WorkResult{ .result = .failed_save, .filename = work_item.filename };
             local_idx += 1;
+            progress_bar.increment();
+            progress_bar.update();
             continue;
         };
         results[local_idx] = result;
         local_idx += 1;
+        progress_bar.increment();
+        progress_bar.update();
     }
     var mutable_work_items = work_items;
     mutable_work_items.deinit(allocator);
@@ -172,6 +177,9 @@ pub fn processFilesMultithreaded(
     const num_threads = std.Thread.getCpuCount() catch 4; // fallback to 4 threads
     const actual_threads = @min(num_threads, filenames.len);
     const is_batch = filenames.len > 1;
+
+    // Initialize progress bar
+    var progress_bar = utils.ProgressBar.init(filenames.len);
 
     // Divide work among threads
     const files_per_thread = filenames.len / actual_threads;
@@ -205,7 +213,7 @@ pub fn processFilesMultithreaded(
         }
 
         // Spawn thread with its work
-        const thread = std.Thread.spawn(.{}, workerThread, .{ allocator, thread_work, results.items, result_idx }) catch |err| {
+        const thread = std.Thread.spawn(.{}, workerThread, .{ allocator, thread_work, results.items, result_idx, &progress_bar }) catch |err| {
             std.log.err("Failed to spawn thread {}: {}", .{ thread_idx, err });
             thread_work.deinit(allocator);
             start_idx = end_idx;
@@ -222,6 +230,8 @@ pub fn processFilesMultithreaded(
     for (threads.items) |thread| {
         thread.join();
     }
+
+    // Progress bar is already updated to 100% by the last thread
 
     // Count results
     var processed_count: usize = 0;
@@ -255,13 +265,18 @@ pub fn processSingleFile(
     verbose: bool,
     preset_path: ?[]const u8,
 ) !FileProcessResult {
-    var ctx = types.Context.init(allocator);
+    // Use arena allocator for memory optimization
+    var arena = std.heap.ArenaAllocator.init(allocator);
+    defer arena.deinit();
+    const arena_allocator = arena.allocator();
+
+    var ctx = types.Context.init(arena_allocator);
     defer ctx.deinit();
 
     ctx.verbose = verbose;
     ctx.is_batch = false;
     if (preset_path) |path| {
-        ctx.preset_path = allocator.dupe(u8, path) catch unreachable;
+        ctx.preset_path = try arena_allocator.dupe(u8, path);
     }
 
     return processFile(&ctx, filename, args, start_arg_index);

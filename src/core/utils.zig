@@ -505,3 +505,49 @@ pub fn getFormatOptionsFromExtension(ext: []const u8) img.Image.EncoderOptions {
         return .{ .png = .{} };
     }
 }
+
+/// Simple progress bar for long operations
+pub const ProgressBar = struct {
+    total: usize,
+    current: std.atomic.Value(usize),
+    width: usize = 50,
+    mutex: std.Thread.Mutex = .{},
+
+    pub fn init(total: usize) ProgressBar {
+        return .{
+            .total = total,
+            .current = std.atomic.Value(usize).init(0),
+            .width = 50,
+            .mutex = .{},
+        };
+    }
+
+    pub fn increment(self: *ProgressBar) void {
+        _ = self.current.fetchAdd(1, .monotonic);
+    }
+
+    pub fn update(self: *ProgressBar) void {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+
+        const current = self.current.load(.monotonic);
+        const percentage = @as(f32, @floatFromInt(current)) / @as(f32, @floatFromInt(self.total));
+        const filled = @as(usize, @intFromFloat(percentage * @as(f32, @floatFromInt(self.width))));
+        const percentage_int = @as(usize, @intFromFloat(percentage * 100));
+
+        std.debug.print("\r[", .{});
+        for (0..self.width) |i| {
+            if (i < filled) {
+                std.debug.print("=", .{});
+            } else if (i == filled) {
+                std.debug.print(">", .{});
+            } else {
+                std.debug.print(" ", .{});
+            }
+        }
+        std.debug.print("] {d}/{d} ({d}%)", .{ current, self.total, percentage_int });
+        if (current >= self.total) {
+            std.debug.print("\n", .{});
+        }
+    }
+};
