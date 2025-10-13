@@ -42,37 +42,37 @@ Decrease brightness
 
 Increase contrast
 
-![Contrast 1.5](output/contrast_1.5_lena.png)
+![Contrast 1.5](output/contrast_1_5_lena.png)
 
 ### Contrast 0.7
 
 Decrease contrast
 
-![Contrast 0.7](output/contrast_0.7_lena.png)
+![Contrast 0.7](output/contrast_0_7_lena.png)
 
 ### Saturation 1.5
 
 Increase saturation
 
-![Saturation 1.5](output/saturation_1.5_lena.png)
+![Saturation 1.5](output/saturation_1_5_lena.png)
 
 ### Saturation 0.5
 
 Decrease saturation
 
-![Saturation 0.5](output/saturation_0.5_lena.png)
+![Saturation 0.5](output/saturation_0_5_lena.png)
 
 ### Gamma 2.2
 
 Apply gamma correction (brighter)
 
-![Gamma 2.2](output/gamma_2.2_lena.png)
+![Gamma 2.2](output/gamma_2_2_lena.png)
 
 ### Gamma 0.45
 
 Apply gamma correction (darker)
 
-![Gamma 0.45](output/gamma_0.45_lena.png)
+![Gamma 0.45](output/gamma_0_45_lena.png)
 
 ### Sepia
 
@@ -96,7 +96,7 @@ Sharpen the image
 
 Apply Gaussian blur with sigma 2.0
 
-![Gaussian Blur](output/gaussian-blur_2.0_lena.png)
+![Gaussian Blur](output/gaussian-blur_2_0_lena.png)
 
 ### Emboss
 
@@ -108,7 +108,7 @@ Apply emboss effect
 
 Apply vignette effect
 
-![Vignette](output/vignette_0.5_lena.png)
+![Vignette](output/vignette_0_5_lena.png)
 
 ### Posterize
 
@@ -156,25 +156,25 @@ Apply pixelation effect
 
 Add random noise to image
 
-![Noise](output/noise_0.1_lena.png)
+![Noise](output/noise_0_1_lena.png)
 
 ### Exposure +1
 
 Increase exposure by 1 EV
 
-![Exposure +1](output/exposure_1.0_lena.png)
+![Exposure +1](output/exposure_1_0_lena.png)
 
 ### Exposure -1
 
 Decrease exposure by 1 EV
 
-![Exposure -1](output/exposure_-1.0_lena.png)
+![Exposure -1](output/exposure_-1_0_lena.png)
 
 ### Vibrance
 
 Boost vibrance (smart saturation)
 
-![Vibrance](output/vibrance_0.5_lena.png)
+![Vibrance](output/vibrance_0_5_lena.png)
 
 ### Equalize
 
@@ -186,7 +186,7 @@ Histogram equalization for contrast
 
 Tint with blue color
 
-![Colorize Blue](output/colorize_50_100_200_0.6_lena.png)
+![Colorize Blue](output/colorize_50_100_200_0_6_lena.png)
 
 ### Duotone
 
@@ -251,25 +251,25 @@ Rotation + crop for dataset variety
 
 Sepia tone with vignette for classic look
 
-![Vintage Portrait](output/sepia_vignette_0.4_lena.png)
+![Vintage Portrait](output/sepia_vignette_0_4_lena.png)
 
 ### Color Grading
 
 Brightness + saturation for natural enhancement
 
-![Color Grading](output/brightness_15_saturation_1.2_lena.png)
+![Color Grading](output/brightness_15_saturation_1_2_lena.png)
 
 ### Detail Enhancement
 
 Contrast boost + sharpening for crisp images
 
-![Detail Enhancement](output/contrast_1.2_sharpen_lena.png)
+![Detail Enhancement](output/contrast_1_2_sharpen_lena.png)
 
 ### Noise Reduction
 
 Gaussian blur + median filter pipeline
 
-![Noise Reduction](output/gaussian-blur_1.0_median-filter_3_lena.png)
+![Noise Reduction](output/gaussian-blur_1_0_median-filter_3_lena.png)
 
 ### Graphic Art
 
@@ -281,7 +281,7 @@ Posterize + emboss for artistic rendering
 
 Gamma correction + contrast adjustment
 
-![Monitor Calibration](output/gamma_2.2_contrast_1.1_lena.png)
+![Monitor Calibration](output/gamma_2_2_contrast_1_1_lena.png)
 
 ### Stylized Edges
 
@@ -299,25 +299,25 @@ Pixelate + posterize for retro gaming aesthetic
 
 Solarize + noise for vintage film look
 
-![Film Grain](output/solarize_180_noise_0.05_lena.png)
+![Film Grain](output/solarize_180_noise_0_05_lena.png)
 
 ### HDR Look
 
 Equalize + vibrance for HDR-style enhancement
 
-![HDR Look](output/equalize_vibrance_0.3_lena.png)
+![HDR Look](output/equalize_vibrance_0_3_lena.png)
 
 ### Dreamy Portrait
 
 Oil painting + vibrance for soft romantic look
 
-![Dreamy Portrait](output/oil-painting_2_vibrance_0.4_lena.png)
+![Dreamy Portrait](output/oil-painting_2_vibrance_0_4_lena.png)
 
 ### Cinematic Grade
 
 Duotone + exposure for film-like color
 
-![Cinematic Grade](output/duotone_20_40_80_255_200_150_exposure_0.2_lena.png)
+![Cinematic Grade](output/duotone_20_40_80_255_200_150_exposure_0_2_lena.png)
 
 
 ---

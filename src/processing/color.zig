@@ -1,8 +1,8 @@
 const img = @import("zigimg");
 const std = @import("std");
-const Context = @import("types.zig").Context;
-const utils = @import("utils.zig");
-const simd = @import("simd_utils.zig");
+const Context = @import("../core/types.zig").Context;
+const utils = @import("../core/utils.zig");
+const simd = @import("../utils/simd_utils.zig");
 const math = std.math;
 
 // Color Adjustments

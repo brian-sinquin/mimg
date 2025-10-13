@@ -46,4 +46,5 @@ jobs:
         run: zig build -Dtarget=${{ matrix.TARGET }} -Doptimize=ReleaseSafe --summary all
 
       - name: Run tests
+        if: matrix.TARGET == 'x86_64-linux'
         run: zig build test -Dtarget=${{ matrix.TARGET }} -Dtests

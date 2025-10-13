@@ -1,7 +1,7 @@
 const img = @import("zigimg");
 const std = @import("std");
-const Context = @import("types.zig").Context;
-const utils = @import("utils.zig");
+const Context = @import("../core/types.zig").Context;
+const utils = @import("../core/utils.zig");
 const math = std.math;
 
 pub fn resizeImage(ctx: *Context, args: anytype) !void {
