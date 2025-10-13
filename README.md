@@ -1,6 +1,6 @@
 # mimg
 
-[![mimg](https://github.com/brian-sinquin/mimg/actions/workflows/dev.yml/badge.svg)](https://github.com/brian-sinquin/mimg/actions/workflows/dev.yml) [![GitHub release (latest by date)](https://img.shields.io/github/v/release/brian-sinquin/mimg?label=ver)](https://github.com/brian-sinquin/mimg/releases/latest)
+[![mimg](https://github.com/brian-sinquin/mimg/actions/workflows/dev.yml/badge.svg)](https://github.com/brian-sinquin/mimg/actions/workflows/dev.yml) [![GitHub release (latest by date)](https://img.shields.io/github/v/release/brian-sinquin/mimg?label=ver)](https://github.com/brian-sinquin/mimg/releases/latest) [![Gallery](https://img.shields.io/badge/gallery-demo-blue)](https://brian-sinquin.github.io/mimg/)
 
 **Fast, SIMD-optimized command-line image processing tool written in Zig**
 
