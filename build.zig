@@ -43,7 +43,7 @@ pub fn build(b: *std.Build) void {
 
         // Add separate test for our test file with proper dependencies
         const unit_test_module = b.createModule(.{
-            .root_source_file = b.path("src/testing/tests.zig"),
+            .root_source_file = b.path("src/main.zig"),
             .target = target,
             .optimize = optimize,
         });
