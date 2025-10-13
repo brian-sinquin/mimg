@@ -3,6 +3,7 @@ const types = @import("../core/types.zig");
 const utils = @import("../core/utils.zig");
 const img = @import("zigimg");
 const cli = @import("../core/cli.zig");
+const pipeline_mod = @import("../processing/pipeline.zig");
 
 /// Result of processing a single file
 pub const FileProcessResult = enum {
@@ -32,34 +33,80 @@ pub const WorkResult = struct {
 pub fn processFile(ctx: *types.Context, filename: []const u8, args: []const []const u8, start_arg_index: usize) FileProcessResult {
     // Reset output filename for each file
     ctx.allocator.free(ctx.output_filename);
-    ctx.output_filename = ctx.allocator.dupe(u8, "out") catch unreachable;
-
-    ctx.input_filename = filename;
-
-    // Try to load the image, but don't fail if it can't be loaded
-    loadImage(ctx, filename) catch |err| {
-        std.log.warn("Skipping unreadable file '{s}': {}", .{ filename, err });
-        return .skipped_unreadable;
-    };
-
-    // Apply preset if specified
-    cli.applyPreset(ctx) catch |err| {
-        std.log.warn("Skipping file '{s}' due to preset error: {}", .{ filename, err });
-        return .skipped_modifier_error;
-    };
-
-    var arg_index = start_arg_index;
-    processModifiers(ctx, args, &arg_index) catch |err| {
-        std.log.warn("Skipping file '{s}' due to modifier error: {}", .{ filename, err });
-        return .skipped_modifier_error;
-    };
-
-    saveImage(ctx) catch |err| {
-        std.log.warn("Failed to save processed image for '{s}': {}", .{ filename, err });
+    ctx.output_filename = ctx.allocator.dupe(u8, "out") catch |err| {
+        std.log.warn("Error duplicating output filename: {}", .{err});
         return .failed_save;
     };
 
+    // Build and execute pipeline
+    buildPipeline(ctx, filename, args, start_arg_index) catch |err| {
+        std.log.warn("Error processing file '{s}': {}", .{ filename, err });
+        return switch (err) {
+            error.FileNotFound, error.AccessDenied, error.IsDir => .skipped_unreadable,
+            types.CliError.InvalidArguments, types.CliError.UnknownArgument => .skipped_modifier_error,
+            else => .failed_save,
+        };
+    };
     return .processed;
+}
+
+/// Build the processing pipeline from arguments
+fn buildPipeline(ctx: *types.Context, filename: []const u8, args: []const []const u8, start_arg_index: usize) !void {
+    // Load image
+    const image = try utils.loadImageFromSource(ctx, filename);
+    ctx.setImage(image);
+    ctx.output_extension = utils.getExtensionFromSource(filename);
+    ctx.input_filename = filename;
+    if (ctx.verbose) {
+        std.log.info("Successfully loaded image from '{s}'", .{filename});
+        std.log.info("Image dimensions: {}x{}", .{ ctx.image.width, ctx.image.height });
+        try cli.printImageInfo(ctx, .{});
+    }
+
+    // Apply preset if any
+    try cli.applyPreset(ctx);
+
+    // Process arguments
+    var arg_index = start_arg_index;
+    while (arg_index < args.len) {
+        const arg = args[arg_index];
+        arg_index += 1;
+
+        var found = false;
+        inline for (cli.registered_options) |option| {
+            if (cli.matchesOption(option.names, arg)) {
+                found = true;
+                const args_start = arg_index;
+                _ = utils.parseArgsFromSlice(option.param_types, args, &arg_index) catch |parse_err| {
+                    cli.reportParseError(arg, option, parse_err);
+                    return types.CliError.InvalidArguments;
+                };
+                const consumed_args = args[args_start..arg_index];
+
+                // Execute the option or modifier immediately
+                var local_index: usize = 0;
+                const parsed = utils.parseArgsFromSlice(option.param_types, consumed_args, &local_index) catch unreachable;
+                try @call(.auto, option.func, .{ ctx, parsed });
+
+                break;
+            }
+        }
+        if (!found) {
+            std.log.warn("Unknown argument: {s}", .{arg});
+            return types.CliError.UnknownArgument;
+        }
+    }
+
+    // Save image
+    var path_buffer: [utils.output_path_buffer_size]u8 = undefined;
+    const output_path = try utils.resolveOutputPath(ctx, ctx.output_filename, &path_buffer);
+    if (ctx.verbose) {
+        std.log.info("Saving image to '{s}'", .{output_path});
+    }
+    try utils.saveImage(ctx, output_path);
+    if (ctx.verbose) {
+        std.log.info("Image saved successfully.", .{});
+    }
 }
 
 /// Load an image from a file path
@@ -71,47 +118,6 @@ fn loadImage(ctx: *types.Context, path: []const u8) !void {
         std.log.info("Successfully loaded image from '{s}'", .{path});
         std.log.info("Image dimensions: {}x{}", .{ ctx.image.width, ctx.image.height });
         try cli.printImageInfo(ctx, .{});
-    }
-}
-
-/// Process modifiers and options from command line arguments
-fn processModifiers(ctx: *types.Context, args: []const []const u8, arg_index: *usize) !void {
-    // First pass: process global options
-    var temp_index = arg_index.*;
-    while (temp_index < args.len) {
-        const arg = args[temp_index];
-        temp_index += 1;
-
-        // Check if this is a global option
-        inline for (cli.registered_options) |option| {
-            if (option.option_type == types.ArgType.Option and cli.matchesOption(option.names, arg)) {
-                const parsed = utils.parseArgsFromSlice(option.param_types, args, &temp_index) catch |parse_err| {
-                    cli.reportParseError(arg, option, parse_err);
-                    return types.CliError.InvalidArguments;
-                };
-                try @call(.auto, option.func, .{ ctx, parsed });
-                break;
-            }
-        }
-    }
-
-    // Second pass: process modifiers
-    cli.processArgumentsFromSlice(ctx, args, arg_index) catch |err| switch (err) {
-        types.CliError.UnknownArgument, types.CliError.InvalidArguments => return,
-        else => return err,
-    };
-}
-
-/// Save the processed image to disk
-fn saveImage(ctx: *types.Context) !void {
-    var path_buffer: [utils.output_path_buffer_size]u8 = undefined;
-    const output_path = try utils.resolveOutputPath(ctx, ctx.output_filename, &path_buffer);
-    if (ctx.verbose) {
-        std.log.info("Saving image to '{s}'", .{output_path});
-    }
-    try utils.saveImage(ctx, output_path);
-    if (ctx.verbose) {
-        std.log.info("Image saved successfully.", .{});
     }
 }
 

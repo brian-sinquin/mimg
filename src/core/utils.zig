@@ -126,35 +126,6 @@ pub fn parseArgs(comptime type_list: []const type, it: *std.process.ArgIterator)
     return tuple;
 }
 
-pub fn parseArgsFromSlice(comptime type_list: []const type, args: []const []const u8, arg_index: *usize) !std.meta.Tuple(type_list) {
-    var tuple: std.meta.Tuple(type_list) = undefined;
-    inline for (type_list, 0..) |T, i| {
-        if (arg_index.* >= args.len) return types.ParseArgError.MissingArgument;
-        const arg = args[arg_index.*];
-        arg_index.* += 1;
-
-        if (T == []const u8) {
-            tuple[i] = arg;
-            continue;
-        }
-
-        switch (@typeInfo(T)) {
-            .float => {
-                tuple[i] = std.fmt.parseFloat(T, arg) catch {
-                    return types.ParseArgError.InvalidArgument;
-                };
-            },
-            .int => {
-                tuple[i] = std.fmt.parseInt(T, arg, 10) catch {
-                    return types.ParseArgError.InvalidArgument;
-                };
-            },
-            else => @compileError("Unsupported parameter type in parseArgsFromSlice"),
-        }
-    }
-    return tuple;
-}
-
 pub fn parseNextArg(comptime T: type, it: *std.process.ArgIterator) types.ParseArgError!T {
     const arg = it.next() orelse {
         return types.ParseArgError.MissingArgument;
@@ -553,25 +524,33 @@ pub const ProgressBar = struct {
 };
 
 /// Generate a sanitized filename from command line arguments for gallery examples
-pub fn generateGalleryFilename(allocator: std.mem.Allocator, args: []const []const u8) ![]const u8 {
-    var filename_parts = std.ArrayList(u8).init(allocator);
-    defer filename_parts.deinit();
-
-    for (args, 0..) |arg, i| {
-        if (i > 0) {
-            try filename_parts.append('_');
+pub fn parseArgsFromSlice(comptime param_types: []const type, args: []const []const u8, arg_index: *usize) !std.meta.Tuple(param_types) {
+    var result: std.meta.Tuple(param_types) = undefined;
+    inline for (param_types, 0..) |param_type, i| {
+        if (arg_index.* >= args.len) {
+            return types.ParseArgError.MissingArgument;
         }
+        const arg_str = args[arg_index.*];
+        arg_index.* += 1;
 
-        // Sanitize the argument by replacing dots with underscores
-        for (arg) |char| {
-            if (char == '.') {
-                try filename_parts.append('_');
-            } else {
-                try filename_parts.append(char);
-            }
-        }
+        result[i] = try parseArg(param_type, arg_str);
     }
+    return result;
+}
 
-    try filename_parts.appendSlice("_lena.png");
-    return filename_parts.toOwnedSlice();
+fn parseArg(comptime T: type, arg: []const u8) !T {
+    return switch (T) {
+        []const u8 => arg,
+        u8 => std.fmt.parseInt(u8, arg, 10) catch return types.ParseArgError.InvalidArgument,
+        u16 => std.fmt.parseInt(u16, arg, 10) catch return types.ParseArgError.InvalidArgument,
+        u32 => std.fmt.parseInt(u32, arg, 10) catch return types.ParseArgError.InvalidArgument,
+        usize => std.fmt.parseInt(usize, arg, 10) catch return types.ParseArgError.InvalidArgument,
+        i8 => std.fmt.parseInt(i8, arg, 10) catch return types.ParseArgError.InvalidArgument,
+        i16 => std.fmt.parseInt(i16, arg, 10) catch return types.ParseArgError.InvalidArgument,
+        i32 => std.fmt.parseInt(i32, arg, 10) catch return types.ParseArgError.InvalidArgument,
+        isize => std.fmt.parseInt(isize, arg, 10) catch return types.ParseArgError.InvalidArgument,
+        f32 => std.fmt.parseFloat(f32, arg) catch return types.ParseArgError.InvalidArgument,
+        f64 => std.fmt.parseFloat(f64, arg) catch return types.ParseArgError.InvalidArgument,
+        else => @compileError("Unsupported parameter type: " ++ @typeName(T)),
+    };
 }

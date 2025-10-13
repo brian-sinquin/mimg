@@ -81,20 +81,18 @@ pub fn main() !void {
 
 // Helper function to write example section
 fn writeExampleSection(writer: anytype, example: gallery_data.GalleryExample, allocator: std.mem.Allocator) !void {
-    var name_buf: [64]u8 = undefined;
-    var desc_buf: [128]u8 = undefined;
-
-    const name_str = try std.fmt.bufPrint(&name_buf, "### {s}\n\n", .{example.name});
-    try writer.writeAll(name_str);
-
-    const desc_str = try std.fmt.bufPrint(&desc_buf, "{s}\n\n", .{example.description});
-    try writer.writeAll(desc_str);
-
     // Build filename using utility function
     const filename = try generateGalleryFilename(allocator, example.args);
     defer allocator.free(filename);
 
-    var img_buf: [512]u8 = undefined;
-    const img_str = try std.fmt.bufPrint(&img_buf, "![{s}](output/{s})\n\n", .{ example.name, filename });
-    try writer.writeAll(img_str);
+    try writer.print(
+        \\<div class="image-item">
+        \\    <img src="output/{s}" alt="{s}">
+        \\    <div class="image-info">
+        \\        <div class="image-title">{s}</div>
+        \\        <div class="image-description">{s}</div>
+        \\    </div>
+        \\</div>
+        \\
+    , .{ filename, example.name, example.name, example.description });
 }

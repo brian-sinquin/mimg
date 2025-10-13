@@ -31,9 +31,10 @@ pub fn build(b: *std.Build) void {
     const enable_lto = b.option(bool, "lto", "Enable Link Time Optimization (slower builds, faster runtime)") orelse false;
     const strip_symbols = b.option(bool, "strip", "Strip debug symbols (smaller binary)") orelse (optimize != .Debug);
     const use_static = b.option(bool, "static", "Force static linking") orelse false;
+    const cpu_features = b.option([]const u8, "cpu-features", "CPU features to enable (avx2, sse4_2)") orelse null;
 
     // Create main executable
-    const exe = build_exe.createExe(b, target, optimize, target_name, enable_lto, strip_symbols, use_static);
+    const exe = build_exe.createExe(b, target, optimize, target_name, enable_lto, strip_symbols, use_static, cpu_features);
 
     // Run step
     const run_step = b.step("run", "Run the app");
@@ -92,8 +93,13 @@ pub fn build(b: *std.Build) void {
 
     // Quick build step for development (always Debug, no LTO)
     const quick_build_step = b.step("quick", "Quick development build (Debug, no LTO)");
-    const quick_exe = build_exe.createExe(b, target, .Debug, target_name, false, false, false);
+    const quick_exe = build_exe.createExe(b, target, .Debug, target_name, false, false, false, null);
     quick_build_step.dependOn(&quick_exe.step);
+
+    // Release build step with all optimizations
+    const release_build_step = b.step("release", "Optimized release build");
+    const release_exe = build_exe.createExe(b, target, .ReleaseFast, target_name, false, true, false, "avx2");
+    release_build_step.dependOn(&release_exe.step);
 
     // Clean step
     const clean_step = b.step("clean", "Clean build artifacts");

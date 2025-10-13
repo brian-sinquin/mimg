@@ -50,7 +50,7 @@ pub fn setupGallery(b: *std.Build, target: std.Build.ResolvedTarget, optimize: s
     gallery_exe.step.dependOn(cleanup_step);
 
     gallery_step.dependOn(&gallery_exe.step);
-    gallery_step.dependOn(b.getInstallStep());
+    // gallery_step.dependOn(b.getInstallStep()); // Not needed since we run from build artifacts
 
     // Import gallery data
     const gallery_data = @import("src/gallery/gallery_data.zig");
