@@ -426,6 +426,17 @@ pub fn mirrorVerticalImage(ctx: *Context, args: anytype) !void {
     try flipVerticalImage(ctx, .{});
 }
 
+pub fn flipImage(ctx: *Context, args: anytype) !void {
+    const direction = args[0];
+    if (std.mem.eql(u8, direction, "horizontal")) {
+        try flipHorizontalImage(ctx, .{});
+    } else if (std.mem.eql(u8, direction, "vertical")) {
+        try flipVerticalImage(ctx, .{});
+    } else {
+        return error.InvalidParameters;
+    }
+}
+
 pub fn roundCornersImage(ctx: *Context, args: anytype) !void {
     const radius = args[0];
 

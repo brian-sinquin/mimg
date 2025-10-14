@@ -4,18 +4,6 @@ const filters = @import("filters.zig");
 const transforms = @import("transforms.zig");
 const std = @import("std");
 
-// Wrapper function for flip that handles string parsing
-fn flipImage(ctx: *types.Context, args: anytype) !void {
-    const direction = args[0];
-    if (std.mem.eql(u8, direction, "horizontal")) {
-        try transforms.flipHorizontalImage(ctx, .{});
-    } else if (std.mem.eql(u8, direction, "vertical")) {
-        try transforms.flipVerticalImage(ctx, .{});
-    } else {
-        return error.InvalidParameters;
-    }
-}
-
 // All image modifier definitions
 pub const modifiers = [_]types.Argument{
     .{
@@ -64,7 +52,7 @@ pub const modifiers = [_]types.Argument{
         .param_types = &[_]type{[]const u8},
         .description = "Flip the image horizontally or vertically",
         .usage = "flip <horizontal|vertical>",
-        .func = flipImage,
+        .func = transforms.flipImage,
     },
     .{
         .names = .{ .single = "grayscale" },
