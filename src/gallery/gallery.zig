@@ -89,6 +89,18 @@ fn writeExampleSectionFast(buf: []u8, example: gallery_data.GalleryExample, allo
     const filename = try generateGalleryFilename(allocator, example.args);
     defer allocator.free(filename);
 
-    const rest = std.fmt.bufPrint(buf, "<div class=\"image-item\">\n    <img src=\"output/{s}\" alt=\"{s}\">\n    <div class=\"image-info\">\n        <div class=\"image-title\">{s}</div>\n        <div class=\"image-description\">{s}</div>\n    </div>\n</div>\n", .{ filename, example.name, example.name, example.description }) catch return 0;
+    // Build command string from args
+    var command_str = try std.ArrayList(u8).initCapacity(allocator, 256);
+    defer command_str.deinit(allocator);
+
+    try command_str.appendSlice(allocator, "mimg lena.png ");
+    for (example.args, 0..) |arg, i| {
+        if (i > 0) {
+            try command_str.append(allocator, ' ');
+        }
+        try command_str.appendSlice(allocator, arg);
+    }
+
+    const rest = std.fmt.bufPrint(buf, "<div class=\"image-item\">\n    <div class=\"command-ribbon\">\n        <span class=\"command-text\">{s}</span>\n        <button class=\"copy-button\" onclick=\"copyCommand('{s}', this)\">\n            <svg class=\"copy-icon\" viewBox=\"0 0 24 24\"><path d=\"M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z\"/></svg>\n            Copy\n        </button>\n    </div>\n    <img src=\"output/{s}\" alt=\"{s}\">\n    <div class=\"image-info\">\n        <div class=\"image-title\">{s}</div>\n        <div class=\"image-description\">{s}</div>\n    </div>\n</div>\n", .{ command_str.items, command_str.items, filename, example.name, example.name, example.description }) catch return 0;
     return buf.len - rest.len;
 }
