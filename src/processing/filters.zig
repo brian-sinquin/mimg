@@ -1195,8 +1195,8 @@ pub fn tiltShiftImage(ctx: *Context, args: anytype) !void {
     const focus_width = args[2]; // 0.0 = no focus area, 1.0 = entire image in focus
 
     // Input validation
-    if (blur_strength < 0.0) {
-        std.log.err("Blur strength must be non-negative, got {d}", .{blur_strength});
+    if (blur_strength < 0.0 or blur_strength > 10.0) {
+        std.log.err("Blur strength must be in range 0.0-10.0, got {d}", .{blur_strength});
         return error.InvalidBlurStrength;
     }
     if (focus_position < 0.0 or focus_position > 1.0) {
@@ -1210,68 +1210,100 @@ pub fn tiltShiftImage(ctx: *Context, args: anytype) !void {
 
     try utils.convertToRgba32(ctx);
 
-    utils.logVerbose(ctx, "Applying tilt-shift effect - strength:{d:.1} pos:{d:.2} width:{d:.2}", .{ blur_strength, focus_position, focus_width });
+    utils.logVerbose(ctx, "Applying advanced tilt-shift effect - strength:{d:.1} pos:{d:.2} width:{d:.2}", .{ blur_strength, focus_position, focus_width });
     utils.logMemoryUsage(ctx, "Tilt-shift start");
 
     const pixels = ctx.image.pixels.rgba32;
     const width = ctx.image.width;
     const height = ctx.image.height;
 
-    // Create a temporary buffer for the result
-    const temp_pixels = try ctx.copyToTempBuffer(pixels);
+    // Early exit for zero blur
+    if (blur_strength < 0.01) {
+        utils.logVerbose(ctx, "Skipping tilt-shift due to minimal blur strength", .{});
+        return;
+    }
 
-    // Calculate focus region
+    // Create temporary buffers for two-pass blur
+    const temp_pixels1 = try ctx.copyToTempBuffer(pixels);
+    const temp_pixels2 = try ctx.allocator.alloc(img.color.Rgba32, pixels.len);
+    defer ctx.allocator.free(temp_pixels2);
+
+    // Calculate focus region with smoother falloff
     const focus_center = focus_position * @as(f32, @floatFromInt(height));
     const focus_half_width = (focus_width * @as(f32, @floatFromInt(height))) / 2.0;
     const focus_start = focus_center - focus_half_width;
     const focus_end = focus_center + focus_half_width;
 
-    // Generate Gaussian kernel for blur
-    const sigma = blur_strength;
-    const kernel_radius = @as(usize, @intFromFloat(@ceil(sigma * 3.0)));
-    const kernel = try generateGaussianKernel1D(ctx.allocator, sigma, kernel_radius);
-    defer ctx.allocator.free(kernel);
+    // Enhanced falloff zones for more realistic depth of field
+    const transition_zone = @max(focus_half_width * 0.3, 10.0); // Minimum 10px transition
 
-    // Apply vertical blur with varying strength based on distance from focus
-    for (0..width) |x| {
-        for (0..height) |y| {
-            const y_f = @as(f32, @floatFromInt(y));
+    // Generate Gaussian kernel for maximum blur
+    const max_sigma = blur_strength;
+    const max_kernel_radius = @as(usize, @intFromFloat(@ceil(max_sigma * 3.0)));
+    const max_kernel = try generateGaussianKernel1D(ctx.allocator, max_sigma, max_kernel_radius);
+    defer ctx.allocator.free(max_kernel);
 
-            // Calculate blur factor based on distance from focus center
-            var blur_factor: f32 = 1.0;
-            if (y_f < focus_start) {
-                const dist = focus_start - y_f;
-                const max_dist = focus_start;
-                blur_factor = if (max_dist > 0) dist / max_dist else 1.0;
-            } else if (y_f > focus_end) {
-                const dist = y_f - focus_end;
-                const max_dist = @as(f32, @floatFromInt(height)) - focus_end;
-                blur_factor = if (max_dist > 0) dist / max_dist else 1.0;
+    // Calculate blur strength for each row using smooth distance function
+    const blur_strengths = try ctx.allocator.alloc(f32, height);
+    defer ctx.allocator.free(blur_strengths);
+
+    for (0..height) |y| {
+        const y_f = @as(f32, @floatFromInt(y));
+        var distance_from_focus: f32 = 0.0;
+
+        if (y_f < focus_start) {
+            distance_from_focus = focus_start - y_f;
+        } else if (y_f > focus_end) {
+            distance_from_focus = y_f - focus_end;
+        } else {
+            // Inside focus zone - check distance to nearest edge for smooth transition
+            const dist_to_start = y_f - focus_start;
+            const dist_to_end = focus_end - y_f;
+            const min_dist = @min(dist_to_start, dist_to_end);
+
+            if (min_dist < transition_zone) {
+                // Smooth transition within focus area
+                distance_from_focus = @max(0.0, transition_zone - min_dist);
             }
+        }
 
-            // Skip blur if factor is very small
-            if (blur_factor < 0.01) {
-                temp_pixels[y * width + x] = pixels[y * width + x];
-                continue;
-            }
+        // Apply smooth falloff curve (cubic for more natural look)
+        const normalized_distance = @min(1.0, distance_from_focus / (@as(f32, @floatFromInt(height)) * 0.5));
+        blur_strengths[y] = normalized_distance * normalized_distance * normalized_distance;
+    }
 
-            // Apply vertical blur with reduced kernel based on blur factor
-            const effective_radius = @as(usize, @intFromFloat(@as(f32, @floatFromInt(kernel_radius)) * blur_factor));
-            const effective_kernel_size = effective_radius * 2 + 1;
+    // First pass: Horizontal blur with variable strength
+    for (0..height) |y| {
+        const row_blur_factor = blur_strengths[y];
 
+        if (row_blur_factor < 0.01) {
+            // No blur needed, copy row directly
+            const row_start = y * width;
+            const row_end = row_start + width;
+            @memcpy(temp_pixels1[row_start..row_end], pixels[row_start..row_end]);
+            continue;
+        }
+
+        const effective_sigma = max_sigma * row_blur_factor;
+        const effective_radius = @as(usize, @intFromFloat(@ceil(effective_sigma * 3.0)));
+
+        // Apply horizontal convolution for this row
+        for (0..width) |x| {
             var r_sum: f32 = 0.0;
             var g_sum: f32 = 0.0;
             var b_sum: f32 = 0.0;
             var weight_sum: f32 = 0.0;
 
-            // Use the same kernel but limit the radius
-            for (0..effective_kernel_size) |k| {
+            for (0..effective_radius * 2 + 1) |k| {
                 const offset = @as(i32, @intCast(k)) - @as(i32, @intCast(effective_radius));
-                const py = @as(i32, @intCast(y)) + offset;
+                const px = @as(i32, @intCast(x)) + offset;
 
-                if (py >= 0 and py < @as(i32, @intCast(height))) {
-                    const weight = if (k < kernel.len) kernel[k] else 0.0;
-                    const idx = @as(usize, @intCast(py)) * width + x;
+                if (px >= 0 and px < @as(i32, @intCast(width))) {
+                    // Calculate Gaussian weight on-the-fly for efficiency
+                    const dist = @as(f32, @floatFromInt(@abs(offset)));
+                    const weight = @exp(-(dist * dist) / (2.0 * effective_sigma * effective_sigma));
+
+                    const idx = y * width + @as(usize, @intCast(px));
                     r_sum += @as(f32, @floatFromInt(pixels[idx].r)) * weight;
                     g_sum += @as(f32, @floatFromInt(pixels[idx].g)) * weight;
                     b_sum += @as(f32, @floatFromInt(pixels[idx].b)) * weight;
@@ -1281,18 +1313,95 @@ pub fn tiltShiftImage(ctx: *Context, args: anytype) !void {
 
             const idx = y * width + x;
             if (weight_sum > 0.0) {
-                temp_pixels[idx].r = @as(u8, @intFromFloat(math.clamp(r_sum / weight_sum, 0.0, 255.0)));
-                temp_pixels[idx].g = @as(u8, @intFromFloat(math.clamp(g_sum / weight_sum, 0.0, 255.0)));
-                temp_pixels[idx].b = @as(u8, @intFromFloat(math.clamp(b_sum / weight_sum, 0.0, 255.0)));
-                temp_pixels[idx].a = pixels[idx].a;
+                temp_pixels1[idx].r = @as(u8, @intFromFloat(math.clamp(r_sum / weight_sum, 0.0, 255.0)));
+                temp_pixels1[idx].g = @as(u8, @intFromFloat(math.clamp(g_sum / weight_sum, 0.0, 255.0)));
+                temp_pixels1[idx].b = @as(u8, @intFromFloat(math.clamp(b_sum / weight_sum, 0.0, 255.0)));
+                temp_pixels1[idx].a = pixels[idx].a;
             } else {
-                temp_pixels[idx] = pixels[idx];
+                temp_pixels1[idx] = pixels[idx];
             }
         }
     }
 
-    // Copy result back
-    @memcpy(pixels, temp_pixels);
+    // Second pass: Vertical blur with variable strength
+    for (0..width) |x| {
+        for (0..height) |y| {
+            const row_blur_factor = blur_strengths[y];
+
+            if (row_blur_factor < 0.01) {
+                temp_pixels2[y * width + x] = temp_pixels1[y * width + x];
+                continue;
+            }
+
+            const effective_sigma = max_sigma * row_blur_factor;
+            const effective_radius = @as(usize, @intFromFloat(@ceil(effective_sigma * 3.0)));
+
+            var r_sum: f32 = 0.0;
+            var g_sum: f32 = 0.0;
+            var b_sum: f32 = 0.0;
+            var weight_sum: f32 = 0.0;
+
+            for (0..effective_radius * 2 + 1) |k| {
+                const offset = @as(i32, @intCast(k)) - @as(i32, @intCast(effective_radius));
+                const py = @as(i32, @intCast(y)) + offset;
+
+                if (py >= 0 and py < @as(i32, @intCast(height))) {
+                    // Calculate Gaussian weight on-the-fly
+                    const dist = @as(f32, @floatFromInt(@abs(offset)));
+                    const weight = @exp(-(dist * dist) / (2.0 * effective_sigma * effective_sigma));
+
+                    const idx = @as(usize, @intCast(py)) * width + x;
+                    r_sum += @as(f32, @floatFromInt(temp_pixels1[idx].r)) * weight;
+                    g_sum += @as(f32, @floatFromInt(temp_pixels1[idx].g)) * weight;
+                    b_sum += @as(f32, @floatFromInt(temp_pixels1[idx].b)) * weight;
+                    weight_sum += weight;
+                }
+            }
+
+            const idx = y * width + x;
+            if (weight_sum > 0.0) {
+                temp_pixels2[idx].r = @as(u8, @intFromFloat(math.clamp(r_sum / weight_sum, 0.0, 255.0)));
+                temp_pixels2[idx].g = @as(u8, @intFromFloat(math.clamp(g_sum / weight_sum, 0.0, 255.0)));
+                temp_pixels2[idx].b = @as(u8, @intFromFloat(math.clamp(b_sum / weight_sum, 0.0, 255.0)));
+                temp_pixels2[idx].a = temp_pixels1[idx].a;
+            } else {
+                temp_pixels2[idx] = temp_pixels1[idx];
+            }
+        }
+    }
+
+    // Apply subtle saturation boost to simulate miniature effect
+    const saturation_boost = 1.1; // Slight boost for toy-like appearance
+    for (0..pixels.len) |i| {
+        const pixel = temp_pixels2[i];
+        const r = @as(f32, @floatFromInt(pixel.r)) / 255.0;
+        const g = @as(f32, @floatFromInt(pixel.g)) / 255.0;
+        const b = @as(f32, @floatFromInt(pixel.b)) / 255.0;
+
+        // Convert to HSV, boost saturation, convert back
+        const max_val = @max(@max(r, g), b);
+        const min_val = @min(@min(r, g), b);
+        const delta = max_val - min_val;
+
+        if (delta > 0.001) { // Only boost if there's actual color
+            const saturation = delta / max_val;
+            const boosted_sat = @min(1.0, saturation * saturation_boost);
+            const sat_factor = if (saturation > 0.001) boosted_sat / saturation else 1.0;
+
+            const new_r = min_val + (r - min_val) * sat_factor;
+            const new_g = min_val + (g - min_val) * sat_factor;
+            const new_b = min_val + (b - min_val) * sat_factor;
+
+            pixels[i].r = @as(u8, @intFromFloat(math.clamp(new_r * 255.0, 0.0, 255.0)));
+            pixels[i].g = @as(u8, @intFromFloat(math.clamp(new_g * 255.0, 0.0, 255.0)));
+            pixels[i].b = @as(u8, @intFromFloat(math.clamp(new_b * 255.0, 0.0, 255.0)));
+        } else {
+            pixels[i].r = pixel.r;
+            pixels[i].g = pixel.g;
+            pixels[i].b = pixel.b;
+        }
+        pixels[i].a = pixel.a;
+    }
 
     utils.logMemoryUsage(ctx, "Tilt-shift end");
 }

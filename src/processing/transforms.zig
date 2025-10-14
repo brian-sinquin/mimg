@@ -516,7 +516,7 @@ pub fn roundCornersImage(ctx: *Context, args: anytype) !void {
             @as(f32, @floatFromInt(y3)),
         };
 
-        // Apply round corners effect using SIMD
+        // Apply round corners effect using SIMD with SDF approach
         const result = simd.applyRoundCornersSIMD4(r_vec, g_vec, b_vec, a_vec, x_vec, y_vec, width_f, height_f, radius_f);
         const new_a_vec = result[3];
 
@@ -527,70 +527,49 @@ pub fn roundCornersImage(ctx: *Context, args: anytype) !void {
         pixels[i + 3].a = @as(u8, @intFromFloat(math.clamp(new_a_vec[3], 0.0, 255.0)));
     }
 
-    // Handle remaining pixels with scalar operations
+    // Handle remaining pixels with scalar operations using SDF approach
     while (i < pixel_count) : (i += 1) {
         const y = i / width;
         const x = i % width;
 
-        const y_f = @as(f32, @floatFromInt(y));
         const x_f = @as(f32, @floatFromInt(x));
-        const dist_from_top = y_f;
-        const dist_from_bottom = @as(f32, @floatFromInt(height - 1)) - y_f;
-        const dist_from_left = x_f;
-        const dist_from_right = @as(f32, @floatFromInt(width - 1)) - x_f;
+        const y_f = @as(f32, @floatFromInt(y));
 
-        // Check if we're in a corner region
-        var alpha_mult: f32 = 1.0;
-
-        // Top-left corner
-        if (dist_from_left <= radius_f and dist_from_top <= radius_f) {
-            const dx = radius_f - dist_from_left;
-            const dy = radius_f - dist_from_top;
-            const dist_from_corner = math.sqrt(dx * dx + dy * dy);
-            if (dist_from_corner > radius_f) {
-                alpha_mult = 0.0;
-            } else if (dist_from_corner > radius_f - 1.0) {
-                // Anti-aliasing: smooth transition
-                alpha_mult = (radius_f - dist_from_corner);
-            }
-        }
-        // Top-right corner
-        else if (dist_from_right <= radius_f and dist_from_top <= radius_f) {
-            const dx = radius_f - dist_from_right;
-            const dy = radius_f - dist_from_top;
-            const dist_from_corner = math.sqrt(dx * dx + dy * dy);
-            if (dist_from_corner > radius_f) {
-                alpha_mult = 0.0;
-            } else if (dist_from_corner > radius_f - 1.0) {
-                alpha_mult = (radius_f - dist_from_corner);
-            }
-        }
-        // Bottom-left corner
-        else if (dist_from_left <= radius_f and dist_from_bottom <= radius_f) {
-            const dx = radius_f - dist_from_left;
-            const dy = radius_f - dist_from_bottom;
-            const dist_from_corner = math.sqrt(dx * dx + dy * dy);
-            if (dist_from_corner > radius_f) {
-                alpha_mult = 0.0;
-            } else if (dist_from_corner > radius_f - 1.0) {
-                alpha_mult = (radius_f - dist_from_corner);
-            }
-        }
-        // Bottom-right corner
-        else if (dist_from_right <= radius_f and dist_from_bottom <= radius_f) {
-            const dx = radius_f - dist_from_right;
-            const dy = radius_f - dist_from_bottom;
-            const dist_from_corner = math.sqrt(dx * dx + dy * dy);
-            if (dist_from_corner > radius_f) {
-                alpha_mult = 0.0;
-            } else if (dist_from_corner > radius_f - 1.0) {
-                alpha_mult = (radius_f - dist_from_corner);
-            }
-        }
+        // Calculate alpha using signed distance field for perfect anti-aliasing
+        const alpha_mult = calculateRoundedRectSDF(x_f, y_f, width_f, height_f, radius_f);
 
         // Apply alpha multiplier
         const current_alpha = @as(f32, @floatFromInt(pixels[i].a)) / 255.0;
         const new_alpha = current_alpha * alpha_mult;
         pixels[i].a = @as(u8, @intFromFloat(math.clamp(new_alpha * 255.0, 0.0, 255.0)));
+    }
+}
+
+// Signed Distance Field function for rounded rectangle
+fn calculateRoundedRectSDF(x: f32, y: f32, width: f32, height: f32, radius: f32) f32 {
+    // Convert to center-based coordinates
+    const cx = x - (width - 1.0) / 2.0;
+    const cy = y - (height - 1.0) / 2.0;
+
+    // Half dimensions
+    const half_w = (width - 1.0) / 2.0;
+    const half_h = (height - 1.0) / 2.0;
+
+    // Calculate distance to rounded rectangle using SDF
+    const dx = @max(0.0, @abs(cx) - (half_w - radius));
+    const dy = @max(0.0, @abs(cy) - (half_h - radius));
+    const distance = math.sqrt(dx * dx + dy * dy) - radius;
+
+    // Convert distance to alpha with smooth anti-aliasing
+    const aa_width: f32 = 1.0; // Anti-aliasing width in pixels
+
+    if (distance > aa_width) {
+        return 0.0; // Fully transparent (outside)
+    } else if (distance > 0.0) {
+        // Smooth transition zone using smoothstep
+        const t = 1.0 - (distance / aa_width);
+        return t * t * (3.0 - 2.0 * t);
+    } else {
+        return 1.0; // Fully opaque (inside)
     }
 }

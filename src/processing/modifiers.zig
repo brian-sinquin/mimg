@@ -306,7 +306,7 @@ pub const modifiers = [_]types.Argument{
         .names = .{ .single = "tilt-shift" },
         .option_type = types.ArgType.Modifier,
         .param_types = &[_]type{ f32, f32, f32 },
-        .description = "Apply tilt-shift effect for miniature appearance",
+        .description = "Advanced tilt-shift effect with two-pass Gaussian blur and smooth focus transitions for realistic miniature appearance",
         .usage = "tilt-shift <blur_strength> <focus_position> <focus_width>",
         .func = filters.tiltShiftImage,
     },

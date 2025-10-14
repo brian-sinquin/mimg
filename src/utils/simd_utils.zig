@@ -314,7 +314,7 @@ pub fn applyVignetteSIMD4(
     return .{ new_r_vec, new_g_vec, new_b_vec };
 }
 
-/// Apply round corners effect to 4 pixels at once using SIMD
+/// Apply round corners effect to 4 pixels at once using SIMD with SDF approach
 pub fn applyRoundCornersSIMD4(
     r_vec: Vec4f32,
     g_vec: Vec4f32,
@@ -326,78 +326,56 @@ pub fn applyRoundCornersSIMD4(
     height: f32,
     radius: f32,
 ) struct { Vec4f32, Vec4f32, Vec4f32, Vec4f32 } {
-    // Calculate distances from corners
-    const width_vec = @as(Vec4f32, @splat(width));
-    const height_vec = @as(Vec4f32, @splat(height));
-    const radius_vec = @as(Vec4f32, @splat(radius));
-
-    // Distance from left/right edges
-    const dist_from_left_vec = x_vec;
-    const dist_from_right_vec = width_vec - x_vec - @as(Vec4f32, @splat(1.0));
-
-    // Distance from top/bottom edges
-    const dist_from_top_vec = y_vec;
-    const dist_from_bottom_vec = height_vec - y_vec - @as(Vec4f32, @splat(1.0));
-
-    // Initialize alpha multipliers to 1.0
-    var alpha_mult_vec = @as(Vec4f32, @splat(1.0));
-
-    // Top-left corner
-    const tl_left_mask = dist_from_left_vec <= radius_vec;
-    const tl_top_mask = dist_from_top_vec <= radius_vec;
-    const tl_mask = @select(f32, tl_left_mask, @select(f32, tl_top_mask, @as(Vec4f32, @splat(1.0)), @as(Vec4f32, @splat(0.0))), @as(Vec4f32, @splat(0.0)));
-    if (@reduce(.Add, tl_mask) > 0.0) {
-        const dx_vec = @select(f32, tl_mask > @as(Vec4f32, @splat(0.0)), radius_vec - dist_from_left_vec, @as(Vec4f32, @splat(0.0)));
-        const dy_vec = @select(f32, tl_mask > @as(Vec4f32, @splat(0.0)), radius_vec - dist_from_top_vec, @as(Vec4f32, @splat(0.0)));
-        const dist_sq_vec = dx_vec * dx_vec + dy_vec * dy_vec;
-        const dist_vec = sqrtVec4F32(dist_sq_vec);
-        const factor_vec = @select(f32, dist_vec > radius_vec, @as(Vec4f32, @splat(0.0)), @select(f32, dist_vec > radius_vec - @as(Vec4f32, @splat(1.0)), radius_vec - dist_vec, @as(Vec4f32, @splat(1.0))));
-        alpha_mult_vec = @select(f32, tl_mask > @as(Vec4f32, @splat(0.0)), @min(alpha_mult_vec, factor_vec), alpha_mult_vec);
-    }
-
-    // Top-right corner
-    const tr_right_mask = dist_from_right_vec <= radius_vec;
-    const tr_top_mask = dist_from_top_vec <= radius_vec;
-    const tr_mask = @select(f32, tr_right_mask, @select(f32, tr_top_mask, @as(Vec4f32, @splat(1.0)), @as(Vec4f32, @splat(0.0))), @as(Vec4f32, @splat(0.0)));
-    if (@reduce(.Add, tr_mask) > 0.0) {
-        const dx_vec = @select(f32, tr_mask > @as(Vec4f32, @splat(0.0)), radius_vec - dist_from_right_vec, @as(Vec4f32, @splat(0.0)));
-        const dy_vec = @select(f32, tr_mask > @as(Vec4f32, @splat(0.0)), radius_vec - dist_from_top_vec, @as(Vec4f32, @splat(0.0)));
-        const dist_sq_vec = dx_vec * dx_vec + dy_vec * dy_vec;
-        const dist_vec = sqrtVec4F32(dist_sq_vec);
-        const factor_vec = @select(f32, dist_vec > radius_vec, @as(Vec4f32, @splat(0.0)), @select(f32, dist_vec > radius_vec - @as(Vec4f32, @splat(1.0)), radius_vec - dist_vec, @as(Vec4f32, @splat(1.0))));
-        alpha_mult_vec = @select(f32, tr_mask > @as(Vec4f32, @splat(0.0)), @min(alpha_mult_vec, factor_vec), alpha_mult_vec);
-    }
-
-    // Bottom-left corner
-    const bl_left_mask = dist_from_left_vec <= radius_vec;
-    const bl_bottom_mask = dist_from_bottom_vec <= radius_vec;
-    const bl_mask = @select(f32, bl_left_mask, @select(f32, bl_bottom_mask, @as(Vec4f32, @splat(1.0)), @as(Vec4f32, @splat(0.0))), @as(Vec4f32, @splat(0.0)));
-    if (@reduce(.Add, bl_mask) > 0.0) {
-        const dx_vec = @select(f32, bl_mask > @as(Vec4f32, @splat(0.0)), radius_vec - dist_from_left_vec, @as(Vec4f32, @splat(0.0)));
-        const dy_vec = @select(f32, bl_mask > @as(Vec4f32, @splat(0.0)), radius_vec - dist_from_bottom_vec, @as(Vec4f32, @splat(0.0)));
-        const dist_sq_vec = dx_vec * dx_vec + dy_vec * dy_vec;
-        const dist_vec = sqrtVec4F32(dist_sq_vec);
-        const factor_vec = @select(f32, dist_vec > radius_vec, @as(Vec4f32, @splat(0.0)), @select(f32, dist_vec > radius_vec - @as(Vec4f32, @splat(1.0)), radius_vec - dist_vec, @as(Vec4f32, @splat(1.0))));
-        alpha_mult_vec = @select(f32, bl_mask > @as(Vec4f32, @splat(0.0)), @min(alpha_mult_vec, factor_vec), alpha_mult_vec);
-    }
-
-    // Bottom-right corner
-    const br_right_mask = dist_from_right_vec <= radius_vec;
-    const br_bottom_mask = dist_from_bottom_vec <= radius_vec;
-    const br_mask = @select(f32, br_right_mask, @select(f32, br_bottom_mask, @as(Vec4f32, @splat(1.0)), @as(Vec4f32, @splat(0.0))), @as(Vec4f32, @splat(0.0)));
-    if (@reduce(.Add, br_mask) > 0.0) {
-        const dx_vec = @select(f32, br_mask > @as(Vec4f32, @splat(0.0)), radius_vec - dist_from_right_vec, @as(Vec4f32, @splat(0.0)));
-        const dy_vec = @select(f32, br_mask > @as(Vec4f32, @splat(0.0)), radius_vec - dist_from_bottom_vec, @as(Vec4f32, @splat(0.0)));
-        const dist_sq_vec = dx_vec * dx_vec + dy_vec * dy_vec;
-        const dist_vec = sqrtVec4F32(dist_sq_vec);
-        const factor_vec = @select(f32, dist_vec > radius_vec, @as(Vec4f32, @splat(0.0)), @select(f32, dist_vec > radius_vec - @as(Vec4f32, @splat(1.0)), radius_vec - dist_vec, @as(Vec4f32, @splat(1.0))));
-        alpha_mult_vec = @select(f32, br_mask > @as(Vec4f32, @splat(0.0)), @min(alpha_mult_vec, factor_vec), alpha_mult_vec);
-    }
+    // Calculate alpha using signed distance field for perfect anti-aliasing
+    const alpha_mult_vec = calculateRoundedRectSDF_SIMD4(x_vec, y_vec, width, height, radius);
 
     // Apply alpha multiplier: new_alpha = current_alpha * alpha_mult
     const new_a_vec = a_vec * alpha_mult_vec;
 
     return .{ r_vec, g_vec, b_vec, new_a_vec };
+}
+
+// SIMD version of signed distance field function for rounded rectangle
+fn calculateRoundedRectSDF_SIMD4(x_vec: Vec4f32, y_vec: Vec4f32, width: f32, height: f32, radius: f32) Vec4f32 {
+    const width_vec = @as(Vec4f32, @splat(width));
+    const height_vec = @as(Vec4f32, @splat(height));
+    const radius_vec = @as(Vec4f32, @splat(radius));
+
+    // Convert to center-based coordinates
+    const cx_vec = x_vec - (width_vec - @as(Vec4f32, @splat(1.0))) / @as(Vec4f32, @splat(2.0));
+    const cy_vec = y_vec - (height_vec - @as(Vec4f32, @splat(1.0))) / @as(Vec4f32, @splat(2.0));
+
+    // Half dimensions
+    const half_w_vec = (width_vec - @as(Vec4f32, @splat(1.0))) / @as(Vec4f32, @splat(2.0));
+    const half_h_vec = (height_vec - @as(Vec4f32, @splat(1.0))) / @as(Vec4f32, @splat(2.0));
+
+    // Calculate distance to rounded rectangle using SDF
+    const abs_cx = @abs(cx_vec);
+    const abs_cy = @abs(cy_vec);
+    const dx_vec = @max(@as(Vec4f32, @splat(0.0)), abs_cx - (half_w_vec - radius_vec));
+    const dy_vec = @max(@as(Vec4f32, @splat(0.0)), abs_cy - (half_h_vec - radius_vec));
+    const distance_vec = sqrtVec4F32(dx_vec * dx_vec + dy_vec * dy_vec) - radius_vec;
+
+    // Convert distance to alpha with smooth anti-aliasing
+    const aa_width_vec = @as(Vec4f32, @splat(1.0)); // Anti-aliasing width in pixels
+
+    // Create masks for different regions
+    const outside_mask = distance_vec > aa_width_vec;
+    const positive_dist_mask = distance_vec > @as(Vec4f32, @splat(0.0));
+    const within_aa_mask = distance_vec <= aa_width_vec;
+    const transition_mask = @select(f32, positive_dist_mask, @select(f32, within_aa_mask, @as(Vec4f32, @splat(1.0)), @as(Vec4f32, @splat(0.0))), @as(Vec4f32, @splat(0.0)));
+
+    // Calculate alpha values
+    const alpha_outside = @as(Vec4f32, @splat(0.0));
+    const alpha_inside = @as(Vec4f32, @splat(1.0));
+
+    // Smooth transition zone using smoothstep
+    const t_vec = @as(Vec4f32, @splat(1.0)) - (distance_vec / aa_width_vec);
+    const t_clamped = @max(@as(Vec4f32, @splat(0.0)), @min(@as(Vec4f32, @splat(1.0)), t_vec));
+    const alpha_transition = t_clamped * t_clamped * (@as(Vec4f32, @splat(3.0)) - @as(Vec4f32, @splat(2.0)) * t_clamped);
+
+    // Select appropriate alpha based on region
+    return @select(f32, outside_mask, alpha_outside, @select(f32, transition_mask > @as(Vec4f32, @splat(0.0)), alpha_transition, alpha_inside));
 }
 
 /// Apply HSL adjustment to 4 pixels at once using SIMD
