@@ -273,9 +273,9 @@ pub const modifiers = [_]types.Argument{
     .{
         .names = .{ .single = "colorize" },
         .option_type = types.ArgType.Modifier,
-        .param_types = &[_]type{ u8, u8, u8, f32 },
-        .description = "Colorize/tint image with RGB color",
-        .usage = "colorize <r> <g> <b> <intensity (0.0-1.0)>",
+        .param_types = &[_]type{ []const u8, f32 },
+        .description = "Colorize/tint image with hex color (#RRGGBB)",
+        .usage = "colorize <#RRGGBB> <intensity (0.0-1.0)>",
         .func = color.colorizeImage,
     },
     .{
@@ -289,9 +289,9 @@ pub const modifiers = [_]types.Argument{
     .{
         .names = .{ .single = "duotone" },
         .option_type = types.ArgType.Modifier,
-        .param_types = &[_]type{ u8, u8, u8, u8, u8, u8 },
-        .description = "Apply duotone effect (Spotify-style)",
-        .usage = "duotone <dark_r> <dark_g> <dark_b> <light_r> <light_g> <light_b>",
+        .param_types = &[_]type{ []const u8, []const u8 },
+        .description = "Apply duotone effect (Spotify-style) with hex colors",
+        .usage = "duotone <#dark> <#light>",
         .func = color.duotoneImage,
     },
     .{

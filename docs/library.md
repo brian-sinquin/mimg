@@ -141,11 +141,11 @@ try mimg.basic.solarizeImage(&ctx, .{180});
 // Posterize levels (2 to 16)
 try mimg.basic.posterizeImage(&ctx, .{8});
 
-// Color tint (r, g, b, strength)
-try mimg.basic.colorizeImage(&ctx, .{255, 128, 0, 0.3});
+// Color tint using hex color and intensity
+try mimg.basic.colorizeImage(&ctx, .{"#FF8000", 0.3});
 
-// Duotone gradient (shadow_r, shadow_g, shadow_b, highlight_r, highlight_g, highlight_b)
-try mimg.basic.duotoneImage(&ctx, .{0, 50, 100, 255, 220, 150});
+// Duotone gradient using hex colors (dark to light)
+try mimg.basic.duotoneImage(&ctx, .{"#003264", "#FFE096"});
 ```
 
 ### Filters

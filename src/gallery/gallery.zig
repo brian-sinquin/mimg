@@ -36,8 +36,8 @@ pub fn main() !void {
 
     const cwd = std.fs.cwd();
 
-    // Read template file
-    const template_content = try cwd.readFileAlloc(std.heap.page_allocator, "examples/gallery/gallery.html.temp", 10 * 1024);
+    // Read template file using the same allocator we will free with (avoid allocator mismatch)
+    const template_content = try cwd.readFileAlloc(allocator, "examples/gallery/gallery.html.temp", 64 * 1024);
     defer allocator.free(template_content);
 
     // Generate individual modifiers section
@@ -47,15 +47,25 @@ pub fn main() !void {
     defer combinations.deinit(allocator);
 
     for (gallery_data.individual_modifiers) |modifier| {
-        var temp: [4096]u8 = [_]u8{0} ** 4096;
-        const written = writeExampleSectionFast(temp[0..], modifier, allocator) catch 0;
-        try individual_modifiers.appendSlice(allocator, temp[0..written]);
+        const snippet = renderExampleSectionAlloc(modifier, allocator) catch |e| blk: {
+            std.log.err("render example failed: {s}", .{@errorName(e)});
+            break :blk null;
+        };
+        if (snippet) |s| {
+            defer allocator.free(s);
+            try individual_modifiers.appendSlice(allocator, s);
+        }
     }
 
     for (gallery_data.combinations) |combo| {
-        var temp: [4096]u8 = [_]u8{0} ** 4096;
-        const written = writeExampleSectionFast(temp[0..], combo, allocator) catch 0;
-        try combinations.appendSlice(allocator, temp[0..written]);
+        const snippet = renderExampleSectionAlloc(combo, allocator) catch |e| blk: {
+            std.log.err("render combo failed: {s}", .{@errorName(e)});
+            break :blk null;
+        };
+        if (snippet) |s| {
+            defer allocator.free(s);
+            try combinations.appendSlice(allocator, s);
+        }
     }
 
     // Replace placeholders in template
@@ -74,8 +84,8 @@ pub fn main() !void {
         }
     }
 
-    // Write final gallery.html
-    const file = try cwd.createFile("examples/gallery/gallery.html", .{});
+    // Write final gallery.html (truncate to avoid stale bytes)
+    const file = try cwd.createFile("examples/gallery/gallery.html", .{ .truncate = true });
     defer file.close();
 
     try file.writeAll(output.items);
@@ -84,7 +94,7 @@ pub fn main() !void {
 }
 
 // Helper function to write example section
-fn writeExampleSectionFast(buf: []u8, example: gallery_data.GalleryExample, allocator: std.mem.Allocator) !usize {
+fn renderExampleSectionAlloc(example: gallery_data.GalleryExample, allocator: std.mem.Allocator) ![]u8 {
     // Build filename using utility function
     const filename = try generateGalleryFilename(allocator, example.args);
     defer allocator.free(filename);
@@ -101,6 +111,19 @@ fn writeExampleSectionFast(buf: []u8, example: gallery_data.GalleryExample, allo
         try command_str.appendSlice(allocator, arg);
     }
 
-    const rest = std.fmt.bufPrint(buf, "<div class=\"image-item\">\n    <div class=\"command-ribbon\">\n        <span class=\"command-text\">{s}</span>\n        <button class=\"copy-button\" onclick=\"copyCommand('{s}', this)\">\n            <svg class=\"copy-icon\" viewBox=\"0 0 24 24\"><path d=\"M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z\"/></svg>\n            Copy\n        </button>\n    </div>\n    <img src=\"output/{s}\" alt=\"{s}\">\n    <div class=\"image-info\">\n        <div class=\"image-title\">{s}</div>\n        <div class=\"image-description\">{s}</div>\n    </div>\n</div>\n", .{ command_str.items, command_str.items, filename, example.name, example.name, example.description }) catch return 0;
-    return buf.len - rest.len;
+    // Allocate exact HTML snippet
+    return try std.fmt.allocPrint(allocator, "<div class=\"image-item\">\n" ++
+        "    <div class=\"command-ribbon\">\n" ++
+        "        <span class=\"command-text\">{s}</span>\n" ++
+        "        <button class=\"copy-button\" onclick=\"copyCommand('{s}', this)\">\n" ++
+        "            <svg class=\"copy-icon\" viewBox=\"0 0 24 24\"><path d=\"M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z\"/></svg>\n" ++
+        "            Copy\n" ++
+        "        </button>\n" ++
+        "    </div>\n" ++
+        "    <img src=\"output/{s}\" alt=\"{s}\">\n" ++
+        "    <div class=\"image-info\">\n" ++
+        "        <div class=\"image-title\">{s}</div>\n" ++
+        "        <div class=\"image-description\">{s}</div>\n" ++
+        "    </div>\n" ++
+        "</div>\n", .{ command_str.items, command_str.items, filename, example.name, example.name, example.description });
 }

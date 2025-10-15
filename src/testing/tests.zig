@@ -550,8 +550,8 @@ test "colorizeImage - single color tint" {
     const image = try createTestImage(allocator, 1, 1, img.color.Rgba32{ .r = 128, .g = 128, .b = 128, .a = 255 });
     ctx.setImage(image);
 
-    // Colorize with red and intensity
-    try color.colorizeImage(&ctx, .{ 255, 0, 0, 0.5 });
+    // Colorize with red and intensity (hex format)
+    try color.colorizeImage(&ctx, .{ "#FF0000", 0.5 });
 
     const pixel = ctx.image.pixels.rgba32[0];
     // Should be tinted red
@@ -568,8 +568,8 @@ test "duotoneImage - two color gradient" {
     const image = try createGradientImage(allocator, 3, 1);
     ctx.setImage(image);
 
-    // Apply duotone effect
-    try color.duotoneImage(&ctx, .{ 255, 0, 0, 0, 0, 255 }); // Red to blue
+    // Apply duotone effect using hex colors (red to blue)
+    try color.duotoneImage(&ctx, .{ "#FF0000", "#0000FF" });
 
     const pixels = ctx.image.pixels.rgba32;
     // First pixel should be more red (dark color)

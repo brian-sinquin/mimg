@@ -82,24 +82,24 @@ pub fn adjustSaturation(ctx: *Context, args: anytype) !void {
         pixels[i + 3] = img.color.Rgba32{ .r = clamped_r[3], .g = clamped_g[3], .b = clamped_b[3], .a = pixels[i + 3].a };
     }
 
-    // Handle remaining pixels with scalar operations
+    // Handle remaining pixels with scalar operations using inline helpers
     while (i < pixel_count) : (i += 1) {
         const pixel = &pixels[i];
-        const rf = @as(f32, @floatFromInt(pixel.r));
-        const gf = @as(f32, @floatFromInt(pixel.g));
-        const bf = @as(f32, @floatFromInt(pixel.b));
+        const rf = utils.u8ToF32(pixel.r);
+        const gf = utils.u8ToF32(pixel.g);
+        const bf = utils.u8ToF32(pixel.b);
 
-        // Calculate luminance using standard coefficients
-        const gray = 0.299 * rf + 0.587 * gf + 0.114 * bf;
+        // Calculate luminance using inline helper
+        const gray = utils.luminanceF32(rf, gf, bf);
 
         // Adjust saturation by interpolating between grayscale and original color
         const new_r = gray + (rf - gray) * factor;
         const new_g = gray + (gf - gray) * factor;
         const new_b = gray + (bf - gray) * factor;
 
-        pixel.r = @as(u8, @intFromFloat(std.math.clamp(new_r, 0.0, 255.0)));
-        pixel.g = @as(u8, @intFromFloat(std.math.clamp(new_g, 0.0, 255.0)));
-        pixel.b = @as(u8, @intFromFloat(std.math.clamp(new_b, 0.0, 255.0)));
+        pixel.r = utils.clampU8(new_r);
+        pixel.g = utils.clampU8(new_g);
+        pixel.b = utils.clampU8(new_b);
     }
 }
 
@@ -218,12 +218,12 @@ pub fn adjustVibrance(ctx: *Context, args: anytype) !void {
     // Handle remaining pixels with scalar operations
     while (i < pixel_count) : (i += 1) {
         const pixel = &pixels[i];
-        const rf = @as(f32, @floatFromInt(pixel.r));
-        const gf = @as(f32, @floatFromInt(pixel.g));
-        const bf = @as(f32, @floatFromInt(pixel.b));
+        const rf = utils.u8ToF32(pixel.r);
+        const gf = utils.u8ToF32(pixel.g);
+        const bf = utils.u8ToF32(pixel.b);
 
-        // Calculate average
-        const avg = (rf + gf + bf) / 3.0;
+        // Calculate average using multiplication instead of division
+        const avg = (rf + gf + bf) * utils.INV_3;
 
         // Calculate maximum saturation
         const max_val = @max(rf, @max(gf, bf));
@@ -237,9 +237,9 @@ pub fn adjustVibrance(ctx: *Context, args: anytype) !void {
         const new_g = avg + (gf - avg) * (1.0 + adjustment);
         const new_b = avg + (bf - avg) * (1.0 + adjustment);
 
-        pixel.r = @as(u8, @intFromFloat(std.math.clamp(new_r, 0.0, 255.0)));
-        pixel.g = @as(u8, @intFromFloat(std.math.clamp(new_g, 0.0, 255.0)));
-        pixel.b = @as(u8, @intFromFloat(std.math.clamp(new_b, 0.0, 255.0)));
+        pixel.r = utils.clampU8(new_r);
+        pixel.g = utils.clampU8(new_g);
+        pixel.b = utils.clampU8(new_b);
     }
 }
 
@@ -252,13 +252,13 @@ pub fn equalizeImage(ctx: *Context, args: anytype) !void {
     const pixels = ctx.image.pixels.rgba32;
     const total_pixels = pixels.len;
 
-    // Build histogram for luminance
+    // Build histogram for luminance using inline helper
     var histogram = [_]u32{0} ** 256;
     for (pixels) |pixel| {
-        const rf = @as(f32, @floatFromInt(pixel.r));
-        const gf = @as(f32, @floatFromInt(pixel.g));
-        const bf = @as(f32, @floatFromInt(pixel.b));
-        const luminance = 0.299 * rf + 0.587 * gf + 0.114 * bf;
+        const rf = utils.u8ToF32(pixel.r);
+        const gf = utils.u8ToF32(pixel.g);
+        const bf = utils.u8ToF32(pixel.b);
+        const luminance = utils.luminanceF32(rf, gf, bf);
         const lum_idx = @as(usize, @intFromFloat(std.math.clamp(luminance, 0.0, 255.0)));
         histogram[lum_idx] += 1;
     }
@@ -320,33 +320,35 @@ pub fn hueShiftImage(ctx: *Context, args: anytype) !void {
     const cos_a = @cos(angle);
     const sin_a = @sin(angle);
 
-    // Rotation matrix for hue shift in RGB color space
-    // Based on the standard color rotation matrix
-    const sqrt3 = @sqrt(3.0);
+    // Pre-calculate repeated values (avoid repeated division in inner loop)
+    const one_third = utils.INV_3;
+    const one_minus_cos_third = (1.0 - cos_a) * one_third;
+    const sin_div_sqrt3 = sin_a / utils.SQRT_3;
+    const diagonal = cos_a + one_minus_cos_third;
 
     for (0..height) |y| {
         for (0..width) |x| {
             const idx = y * width + x;
-            const rf = @as(f32, @floatFromInt(pixels[idx].r));
-            const gf = @as(f32, @floatFromInt(pixels[idx].g));
-            const bf = @as(f32, @floatFromInt(pixels[idx].b));
+            const rf = utils.u8ToF32(pixels[idx].r);
+            const gf = utils.u8ToF32(pixels[idx].g);
+            const bf = utils.u8ToF32(pixels[idx].b);
 
-            // Apply hue rotation matrix
-            const new_r = rf * (cos_a + (1.0 - cos_a) / 3.0) +
-                gf * ((1.0 - cos_a) / 3.0 - sin_a / sqrt3) +
-                bf * ((1.0 - cos_a) / 3.0 + sin_a / sqrt3);
+            // Apply optimized hue rotation matrix (pre-calculated coefficients)
+            const new_r = rf * diagonal +
+                gf * (one_minus_cos_third - sin_div_sqrt3) +
+                bf * (one_minus_cos_third + sin_div_sqrt3);
 
-            const new_g = rf * ((1.0 - cos_a) / 3.0 + sin_a / sqrt3) +
-                gf * (cos_a + (1.0 - cos_a) / 3.0) +
-                bf * ((1.0 - cos_a) / 3.0 - sin_a / sqrt3);
+            const new_g = rf * (one_minus_cos_third + sin_div_sqrt3) +
+                gf * diagonal +
+                bf * (one_minus_cos_third - sin_div_sqrt3);
 
-            const new_b = rf * ((1.0 - cos_a) / 3.0 - sin_a / sqrt3) +
-                gf * ((1.0 - cos_a) / 3.0 + sin_a / sqrt3) +
-                bf * (cos_a + (1.0 - cos_a) / 3.0);
+            const new_b = rf * (one_minus_cos_third - sin_div_sqrt3) +
+                gf * (one_minus_cos_third + sin_div_sqrt3) +
+                bf * diagonal;
 
-            pixels[idx].r = @as(u8, @intFromFloat(std.math.clamp(new_r, 0.0, 255.0)));
-            pixels[idx].g = @as(u8, @intFromFloat(std.math.clamp(new_g, 0.0, 255.0)));
-            pixels[idx].b = @as(u8, @intFromFloat(std.math.clamp(new_b, 0.0, 255.0)));
+            pixels[idx].r = utils.clampU8(new_r);
+            pixels[idx].g = utils.clampU8(new_g);
+            pixels[idx].b = utils.clampU8(new_b);
         }
     }
 }
@@ -383,24 +385,24 @@ pub fn applySepia(ctx: *Context, args: anytype) !void {
 }
 
 pub fn colorizeImage(ctx: *Context, args: anytype) !void {
-    const tint_r = args[0];
-    const tint_g = args[1];
-    const tint_b = args[2];
-    const intensity = args[3];
+    const hex_color = args[0]; // e.g., "#RRGGBB" or "#RRGGBBAA"
+    const intensity = args[1];
 
-    // Input validation with descriptive error messages
-    if (tint_r < 0 or tint_r > 255 or tint_g < 0 or tint_g > 255 or tint_b < 0 or tint_b > 255) {
-        std.log.err("Colorize tint values must be in range 0-255, got RGB({d}, {d}, {d})", .{ tint_r, tint_g, tint_b });
-        return error.InvalidColorValues;
-    }
+    // Input validation
     if (intensity < 0.0 or intensity > 1.0) {
         std.log.err("Colorize intensity must be in range 0.0-1.0, got {d}", .{intensity});
         return error.InvalidIntensity;
     }
 
+    // Parse color
+    const rgba = utils.parseHexColor(hex_color) catch {
+        std.log.err("Invalid hex color '{s}'. Expected #RRGGBB or #RRGGBBAA.", .{hex_color});
+        return error.InvalidHexColor;
+    };
+
     try utils.convertToRgba32(ctx);
 
-    utils.logVerbose(ctx, "Applying colorize with RGB({d}, {d}, {d}) intensity {d:.2}", .{ tint_r, tint_g, tint_b, intensity });
+    utils.logVerbose(ctx, "Applying colorize with {s} (RGB {d},{d},{d}) intensity {d:.2}", .{ hex_color, rgba.r, rgba.g, rgba.b, intensity });
 
     const pixels = ctx.image.pixels.rgba32;
 
@@ -413,9 +415,9 @@ pub fn colorizeImage(ctx: *Context, args: anytype) !void {
         const luminance = 0.299 * rf + 0.587 * gf + 0.114 * bf;
 
         // Blend with tint color based on luminance
-        const tint_rf = @as(f32, @floatFromInt(tint_r));
-        const tint_gf = @as(f32, @floatFromInt(tint_g));
-        const tint_bf = @as(f32, @floatFromInt(tint_b));
+        const tint_rf = @as(f32, @floatFromInt(rgba.r));
+        const tint_gf = @as(f32, @floatFromInt(rgba.g));
+        const tint_bf = @as(f32, @floatFromInt(rgba.b));
 
         const tinted_r = (luminance / 255.0) * tint_rf;
         const tinted_g = (luminance / 255.0) * tint_gf;
@@ -433,24 +435,21 @@ pub fn colorizeImage(ctx: *Context, args: anytype) !void {
 }
 
 pub fn duotoneImage(ctx: *Context, args: anytype) !void {
-    const dark_r = args[0];
-    const dark_g = args[1];
-    const dark_b = args[2];
-    const light_r = args[3];
-    const light_g = args[4];
-    const light_b = args[5];
+    const dark_hex = args[0]; // "#RRGGBB" or "#RRGGBBAA"
+    const light_hex = args[1]; // "#RRGGBB" or "#RRGGBBAA"
 
-    // Input validation with descriptive error messages
-    if (dark_r < 0 or dark_r > 255 or dark_g < 0 or dark_g > 255 or dark_b < 0 or dark_b > 255 or
-        light_r < 0 or light_r > 255 or light_g < 0 or light_g > 255 or light_b < 0 or light_b > 255)
-    {
-        std.log.err("Duotone colors must be in range 0-255, got dark RGB({d},{d},{d}) light RGB({d},{d},{d})", .{ dark_r, dark_g, dark_b, light_r, light_g, light_b });
-        return error.InvalidColorValues;
-    }
+    const dark = utils.parseHexColor(dark_hex) catch {
+        std.log.err("Invalid dark hex color '{s}'. Expected #RRGGBB or #RRGGBBAA.", .{dark_hex});
+        return error.InvalidHexColor;
+    };
+    const light = utils.parseHexColor(light_hex) catch {
+        std.log.err("Invalid light hex color '{s}'. Expected #RRGGBB or #RRGGBBAA.", .{light_hex});
+        return error.InvalidHexColor;
+    };
 
     try utils.convertToRgba32(ctx);
 
-    utils.logVerbose(ctx, "Applying duotone effect", .{});
+    utils.logVerbose(ctx, "Applying duotone effect from {s} to {s}", .{ dark_hex, light_hex });
 
     const pixels = ctx.image.pixels.rgba32;
 
@@ -463,12 +462,12 @@ pub fn duotoneImage(ctx: *Context, args: anytype) !void {
         const luminance = (0.299 * rf + 0.587 * gf + 0.114 * bf) / 255.0;
 
         // Interpolate between dark and light colors based on luminance
-        const dark_rf = @as(f32, @floatFromInt(dark_r));
-        const dark_gf = @as(f32, @floatFromInt(dark_g));
-        const dark_bf = @as(f32, @floatFromInt(dark_b));
-        const light_rf = @as(f32, @floatFromInt(light_r));
-        const light_gf = @as(f32, @floatFromInt(light_g));
-        const light_bf = @as(f32, @floatFromInt(light_b));
+        const dark_rf = @as(f32, @floatFromInt(dark.r));
+        const dark_gf = @as(f32, @floatFromInt(dark.g));
+        const dark_bf = @as(f32, @floatFromInt(dark.b));
+        const light_rf = @as(f32, @floatFromInt(light.r));
+        const light_gf = @as(f32, @floatFromInt(light.g));
+        const light_bf = @as(f32, @floatFromInt(light.b));
 
         pixel.r = @as(u8, @intFromFloat(dark_rf + (light_rf - dark_rf) * luminance));
         pixel.g = @as(u8, @intFromFloat(dark_gf + (light_gf - dark_gf) * luminance));
@@ -748,7 +747,7 @@ fn rgbToHsl(r: f32, g: f32, b: f32, h: *f32, s: *f32, l: *f32) void {
     const delta = max_val - min_val;
 
     // Lightness
-    l.* = (max_val + min_val) / 2.0;
+    l.* = (max_val + min_val) * utils.INV_2;
 
     // Saturation
     if (delta == 0.0) {
@@ -794,9 +793,12 @@ fn hueToRgb(p: f32, q: f32, t: f32) f32 {
     if (t_clamped < 0.0) t_clamped += 1.0;
     if (t_clamped > 1.0) t_clamped -= 1.0;
 
-    if (t_clamped < 1.0 / 6.0) return p + (q - p) * 6.0 * t_clamped;
-    if (t_clamped < 1.0 / 2.0) return q;
-    if (t_clamped < 2.0 / 3.0) return p + (q - p) * (2.0 / 3.0 - t_clamped) * 6.0;
+    const INV_6: f32 = 1.0 / 6.0;
+    const TWO_THIRDS: f32 = 2.0 / 3.0;
+
+    if (t_clamped < INV_6) return p + (q - p) * 6.0 * t_clamped;
+    if (t_clamped < utils.INV_2) return q;
+    if (t_clamped < TWO_THIRDS) return p + (q - p) * (TWO_THIRDS - t_clamped) * 6.0;
     return p;
 }
 

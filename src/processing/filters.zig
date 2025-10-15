@@ -76,88 +76,6 @@ fn generateGaussianKernel1D(allocator: std.mem.Allocator, sigma: f64, kernel_rad
     return kernel;
 }
 
-/// Apply 1D convolution horizontally
-fn applyHorizontalConvolution(
-    src_pixels: []const img.color.Rgba32,
-    dst_pixels: []img.color.Rgba32,
-    width: usize,
-    height: usize,
-    kernel: []const f32,
-    kernel_radius: usize,
-) void {
-    const kernel_size = kernel_radius * 2 + 1;
-
-    for (0..height) |y| {
-        for (0..width) |x| {
-            var r_sum: f32 = 0.0;
-            var g_sum: f32 = 0.0;
-            var b_sum: f32 = 0.0;
-            var a_sum: f32 = 0.0;
-
-            for (0..kernel_size) |k| {
-                const offset = @as(i32, @intCast(k)) - @as(i32, @intCast(kernel_radius));
-                const px = @as(i32, @intCast(x)) + offset;
-
-                if (px >= 0 and px < @as(i32, @intCast(width))) {
-                    const idx = y * width + @as(usize, @intCast(px));
-                    const weight = kernel[k];
-                    r_sum += @as(f32, @floatFromInt(src_pixels[idx].r)) * weight;
-                    g_sum += @as(f32, @floatFromInt(src_pixels[idx].g)) * weight;
-                    b_sum += @as(f32, @floatFromInt(src_pixels[idx].b)) * weight;
-                    a_sum += @as(f32, @floatFromInt(src_pixels[idx].a)) * weight;
-                }
-            }
-
-            const idx = y * width + x;
-            dst_pixels[idx].r = @as(u8, @intFromFloat(std.math.clamp(r_sum, 0.0, 255.0)));
-            dst_pixels[idx].g = @as(u8, @intFromFloat(std.math.clamp(g_sum, 0.0, 255.0)));
-            dst_pixels[idx].b = @as(u8, @intFromFloat(std.math.clamp(b_sum, 0.0, 255.0)));
-            dst_pixels[idx].a = @as(u8, @intFromFloat(std.math.clamp(a_sum, 0.0, 255.0)));
-        }
-    }
-}
-
-/// Apply 1D convolution vertically
-fn applyVerticalConvolution(
-    src_pixels: []const img.color.Rgba32,
-    dst_pixels: []img.color.Rgba32,
-    width: usize,
-    height: usize,
-    kernel: []const f32,
-    kernel_radius: usize,
-) void {
-    const kernel_size = kernel_radius * 2 + 1;
-
-    for (0..height) |y| {
-        for (0..width) |x| {
-            var r_sum: f32 = 0.0;
-            var g_sum: f32 = 0.0;
-            var b_sum: f32 = 0.0;
-            var a_sum: f32 = 0.0;
-
-            for (0..kernel_size) |k| {
-                const offset = @as(i32, @intCast(k)) - @as(i32, @intCast(kernel_radius));
-                const py = @as(i32, @intCast(y)) + offset;
-
-                if (py >= 0 and py < @as(i32, @intCast(height))) {
-                    const idx = @as(usize, @intCast(py)) * width + x;
-                    const weight = kernel[k];
-                    r_sum += @as(f32, @floatFromInt(src_pixels[idx].r)) * weight;
-                    g_sum += @as(f32, @floatFromInt(src_pixels[idx].g)) * weight;
-                    b_sum += @as(f32, @floatFromInt(src_pixels[idx].b)) * weight;
-                    a_sum += @as(f32, @floatFromInt(src_pixels[idx].a)) * weight;
-                }
-            }
-
-            const idx = y * width + x;
-            dst_pixels[idx].r = @as(u8, @intFromFloat(std.math.clamp(r_sum, 0.0, 255.0)));
-            dst_pixels[idx].g = @as(u8, @intFromFloat(std.math.clamp(g_sum, 0.0, 255.0)));
-            dst_pixels[idx].b = @as(u8, @intFromFloat(std.math.clamp(b_sum, 0.0, 255.0)));
-            dst_pixels[idx].a = @as(u8, @intFromFloat(std.math.clamp(a_sum, 0.0, 255.0)));
-        }
-    }
-}
-
 /// SIMD-optimized horizontal convolution using 4-pixel vector operations
 fn applyHorizontalConvolutionSIMD(
     src_pixels: []const img.color.Rgba32,
@@ -351,11 +269,11 @@ pub fn sharpenImage(ctx: *Context, args: anytype) !void {
                 }
             }
 
-            // Clamp results to valid range
+            // Clamp results to valid range using inline helper
             const idx = y * width + x;
-            pixels[idx].r = @as(u8, @intFromFloat(std.math.clamp(@as(f32, @floatFromInt(r_sum)), 0.0, 255.0)));
-            pixels[idx].g = @as(u8, @intFromFloat(std.math.clamp(@as(f32, @floatFromInt(g_sum)), 0.0, 255.0)));
-            pixels[idx].b = @as(u8, @intFromFloat(std.math.clamp(@as(f32, @floatFromInt(b_sum)), 0.0, 255.0)));
+            pixels[idx].r = utils.clampU8(@as(f32, @floatFromInt(r_sum)));
+            pixels[idx].g = utils.clampU8(@as(f32, @floatFromInt(g_sum)));
+            pixels[idx].b = utils.clampU8(@as(f32, @floatFromInt(b_sum)));
         }
     }
 
@@ -382,12 +300,9 @@ pub fn embossImage(ctx: *Context, args: anytype) !void {
     const gray_pixels = try ctx.allocator.alloc(u8, width * height);
     defer ctx.allocator.free(gray_pixels);
 
+    // Use utility function for luminance calculation - more compact and clear
     for (pixels, 0..) |pixel, i| {
-        // Standard luminance calculation: 0.299*R + 0.587*G + 0.114*B
-        const luminance = @as(u8, @intFromFloat(@as(f32, @floatFromInt(pixel.r)) * 0.299 +
-            @as(f32, @floatFromInt(pixel.g)) * 0.587 +
-            @as(f32, @floatFromInt(pixel.b)) * 0.114));
-        gray_pixels[i] = luminance;
+        gray_pixels[i] = utils.rgbToLuminanceU8(pixel.r, pixel.g, pixel.b);
     }
 
     // Emboss kernel: creates 3D-like raised effect
@@ -422,8 +337,8 @@ pub fn embossImage(ctx: *Context, args: anytype) !void {
                 }
             }
 
-            // Add 128 bias then clamp to [0, 255]
-            const emboss_value = @as(u8, @intFromFloat(std.math.clamp(sum + 128.0, 0.0, 255.0)));
+            // Add 128 bias then clamp using inline helper
+            const emboss_value = utils.clampU8(sum + 128.0);
 
             const idx = y * width + x;
             pixels[idx].r = emboss_value;
@@ -445,8 +360,8 @@ pub fn vignetteImage(ctx: *Context, args: anytype) !void {
     const width = ctx.image.width;
     const height = ctx.image.height;
 
-    const center_x = @as(f32, @floatFromInt(width)) / 2.0;
-    const center_y = @as(f32, @floatFromInt(height)) / 2.0;
+    const center_x = @as(f32, @floatFromInt(width)) * utils.INV_2;
+    const center_y = @as(f32, @floatFromInt(height)) * utils.INV_2;
     const max_distance = @sqrt(center_x * center_x + center_y * center_y);
     const inv_max_distance = 1.0 / max_distance;
 
@@ -730,45 +645,8 @@ pub fn pixelateImage(ctx: *Context, args: anytype) !void {
     const width = ctx.image.width;
     const height = ctx.image.height;
 
-    // Process image in blocks
-    var by: usize = 0;
-    while (by < height) : (by += block_size) {
-        var bx: usize = 0;
-        while (bx < width) : (bx += block_size) {
-            // Calculate average color for this block
-            var sum_r: u32 = 0;
-            var sum_g: u32 = 0;
-            var sum_b: u32 = 0;
-            var count: u32 = 0;
-
-            const block_end_y = @min(by + block_size, height);
-            const block_end_x = @min(bx + block_size, width);
-
-            for (by..block_end_y) |y| {
-                for (bx..block_end_x) |x| {
-                    const idx = y * width + x;
-                    sum_r += pixels[idx].r;
-                    sum_g += pixels[idx].g;
-                    sum_b += pixels[idx].b;
-                    count += 1;
-                }
-            }
-
-            const avg_r = @as(u8, @intCast(sum_r / count));
-            const avg_g = @as(u8, @intCast(sum_g / count));
-            const avg_b = @as(u8, @intCast(sum_b / count));
-
-            // Apply average color to entire block
-            for (by..block_end_y) |y| {
-                for (bx..block_end_x) |x| {
-                    const idx = y * width + x;
-                    pixels[idx].r = avg_r;
-                    pixels[idx].g = avg_g;
-                    pixels[idx].b = avg_b;
-                }
-            }
-        }
-    }
+    // Use helper function to apply pixelation to entire image
+    applyPixelateToRegion(pixels, width, 0, 0, width, height, block_size);
 }
 
 pub fn oilPaintingImage(ctx: *Context, args: anytype) !void {
@@ -834,13 +712,13 @@ pub fn oilPaintingImage(ctx: *Context, args: anytype) !void {
                 for (y_start..y_end) |ny| {
                     for (x_start..x_end) |nx| {
                         const idx = ny * width + nx;
-                        const rf = @as(f32, @floatFromInt(temp_pixels[idx].r));
-                        const gf = @as(f32, @floatFromInt(temp_pixels[idx].g));
-                        const bf = @as(f32, @floatFromInt(temp_pixels[idx].b));
+                        const rf = utils.u8ToF32(temp_pixels[idx].r);
+                        const gf = utils.u8ToF32(temp_pixels[idx].g);
+                        const bf = utils.u8ToF32(temp_pixels[idx].b);
 
-                        // Calculate intensity level
-                        const intensity = (rf + gf + bf) / 3.0;
-                        const level = @min(@as(usize, @intFromFloat(intensity / 255.0 * @as(f32, @floatFromInt(intensity_levels - 1)))), intensity_levels - 1);
+                        // Calculate intensity level using optimized constants
+                        const intensity = (rf + gf + bf) * utils.INV_3;
+                        const level = @min(@as(usize, @intFromFloat(intensity * utils.INV_255 * @as(f32, @floatFromInt(intensity_levels - 1)))), intensity_levels - 1);
 
                         intensity_count[level] += 1;
                         avg_r[level] += rf;
@@ -862,10 +740,10 @@ pub fn oilPaintingImage(ctx: *Context, args: anytype) !void {
                 // Set pixel to average color of most common intensity
                 const idx = y * width + x;
                 if (max_count > 0) {
-                    const count_f = @as(f32, @floatFromInt(max_count));
-                    pixels[idx].r = @as(u8, @intFromFloat(std.math.clamp(avg_r[max_level] / count_f, 0.0, 255.0)));
-                    pixels[idx].g = @as(u8, @intFromFloat(std.math.clamp(avg_g[max_level] / count_f, 0.0, 255.0)));
-                    pixels[idx].b = @as(u8, @intFromFloat(std.math.clamp(avg_b[max_level] / count_f, 0.0, 255.0)));
+                    const inv_count = 1.0 / @as(f32, @floatFromInt(max_count));
+                    pixels[idx].r = utils.clampU8(avg_r[max_level] * inv_count);
+                    pixels[idx].g = utils.clampU8(avg_g[max_level] * inv_count);
+                    pixels[idx].b = utils.clampU8(avg_b[max_level] * inv_count);
                 }
             }
         }
@@ -1045,7 +923,7 @@ pub fn glowImage(ctx: *Context, args: anytype) !void {
     }
 
     // Blur the glow mask using Gaussian blur
-    const sigma = @as(f32, @floatFromInt(radius)) / 3.0;
+    const sigma = utils.u8ToF32(radius) * utils.INV_3;
     const kernel_radius = @as(usize, @intFromFloat(@ceil(sigma * 3.0)));
 
     // Generate 1D Gaussian kernel
@@ -1059,11 +937,11 @@ pub fn glowImage(ctx: *Context, args: anytype) !void {
     // Copy glow mask to blurred_glow for horizontal pass
     @memcpy(blurred_glow, glow_mask);
 
-    // Apply separable blur to glow mask: horizontal pass
-    applyHorizontalConvolution(glow_mask, blurred_glow, width, height, kernel, kernel_radius);
+    // Apply separable blur to glow mask: horizontal pass (using SIMD for better performance)
+    applyHorizontalConvolutionSIMD(glow_mask, blurred_glow, width, height, kernel, kernel_radius);
 
-    // Apply separable blur: vertical pass
-    applyVerticalConvolution(blurred_glow, glow_mask, width, height, kernel, kernel_radius);
+    // Apply separable blur: vertical pass (using SIMD for better performance)
+    applyVerticalConvolutionSIMD(blurred_glow, glow_mask, width, height, kernel, kernel_radius);
 
     // Add blurred glow back to original image
     for (0..height) |y| {
@@ -1071,13 +949,13 @@ pub fn glowImage(ctx: *Context, args: anytype) !void {
             const idx = y * width + x;
             const glow_pixel = glow_mask[idx];
 
-            const new_r = @as(f32, @floatFromInt(original_pixels[idx].r)) + @as(f32, @floatFromInt(glow_pixel.r));
-            const new_g = @as(f32, @floatFromInt(original_pixels[idx].g)) + @as(f32, @floatFromInt(glow_pixel.g));
-            const new_b = @as(f32, @floatFromInt(original_pixels[idx].b)) + @as(f32, @floatFromInt(glow_pixel.b));
+            const new_r = utils.u8ToF32(original_pixels[idx].r) + utils.u8ToF32(glow_pixel.r);
+            const new_g = utils.u8ToF32(original_pixels[idx].g) + utils.u8ToF32(glow_pixel.g);
+            const new_b = utils.u8ToF32(original_pixels[idx].b) + utils.u8ToF32(glow_pixel.b);
 
-            pixels[idx].r = @as(u8, @intFromFloat(std.math.clamp(new_r, 0.0, 255.0)));
-            pixels[idx].g = @as(u8, @intFromFloat(std.math.clamp(new_g, 0.0, 255.0)));
-            pixels[idx].b = @as(u8, @intFromFloat(std.math.clamp(new_b, 0.0, 255.0)));
+            pixels[idx].r = utils.clampU8(new_r);
+            pixels[idx].g = utils.clampU8(new_g);
+            pixels[idx].b = utils.clampU8(new_b);
         }
     }
 
@@ -1230,7 +1108,7 @@ pub fn tiltShiftImage(ctx: *Context, args: anytype) !void {
 
     // Calculate focus region with smoother falloff
     const focus_center = focus_position * @as(f32, @floatFromInt(height));
-    const focus_half_width = (focus_width * @as(f32, @floatFromInt(height))) / 2.0;
+    const focus_half_width = (focus_width * @as(f32, @floatFromInt(height))) * utils.INV_2;
     const focus_start = focus_center - focus_half_width;
     const focus_end = focus_center + focus_half_width;
 
@@ -1374,9 +1252,9 @@ pub fn tiltShiftImage(ctx: *Context, args: anytype) !void {
     const saturation_boost = 1.1; // Slight boost for toy-like appearance
     for (0..pixels.len) |i| {
         const pixel = temp_pixels2[i];
-        const r = @as(f32, @floatFromInt(pixel.r)) / 255.0;
-        const g = @as(f32, @floatFromInt(pixel.g)) / 255.0;
-        const b = @as(f32, @floatFromInt(pixel.b)) / 255.0;
+        const r = utils.normalizeU8(pixel.r);
+        const g = utils.normalizeU8(pixel.g);
+        const b = utils.normalizeU8(pixel.b);
 
         // Convert to HSV, boost saturation, convert back
         const max_val = @max(@max(r, g), b);
@@ -1392,9 +1270,9 @@ pub fn tiltShiftImage(ctx: *Context, args: anytype) !void {
             const new_g = min_val + (g - min_val) * sat_factor;
             const new_b = min_val + (b - min_val) * sat_factor;
 
-            pixels[i].r = @as(u8, @intFromFloat(math.clamp(new_r * 255.0, 0.0, 255.0)));
-            pixels[i].g = @as(u8, @intFromFloat(math.clamp(new_g * 255.0, 0.0, 255.0)));
-            pixels[i].b = @as(u8, @intFromFloat(math.clamp(new_b * 255.0, 0.0, 255.0)));
+            pixels[i].r = utils.clampU8(new_r * 255.0);
+            pixels[i].g = utils.clampU8(new_g * 255.0);
+            pixels[i].b = utils.clampU8(new_b * 255.0);
         } else {
             pixels[i].r = pixel.r;
             pixels[i].g = pixel.g;
@@ -1531,13 +1409,13 @@ pub fn edgeEnhancementImage(ctx: *Context, args: anytype) !void {
         const edge = edge_pixels[i];
 
         // Enhance edges by adding edge information to original
-        const new_r = @as(f32, @floatFromInt(original.r)) + @as(f32, @floatFromInt(edge.r)) * strength;
-        const new_g = @as(f32, @floatFromInt(original.g)) + @as(f32, @floatFromInt(edge.g)) * strength;
-        const new_b = @as(f32, @floatFromInt(original.b)) + @as(f32, @floatFromInt(edge.b)) * strength;
+        const new_r = utils.u8ToF32(original.r) + utils.u8ToF32(edge.r) * strength;
+        const new_g = utils.u8ToF32(original.g) + utils.u8ToF32(edge.g) * strength;
+        const new_b = utils.u8ToF32(original.b) + utils.u8ToF32(edge.b) * strength;
 
-        pixels[i].r = @as(u8, @intFromFloat(std.math.clamp(new_r, 0.0, 255.0)));
-        pixels[i].g = @as(u8, @intFromFloat(std.math.clamp(new_g, 0.0, 255.0)));
-        pixels[i].b = @as(u8, @intFromFloat(std.math.clamp(new_b, 0.0, 255.0)));
+        pixels[i].r = utils.clampU8(new_r);
+        pixels[i].g = utils.clampU8(new_g);
+        pixels[i].b = utils.clampU8(new_b);
         pixels[i].a = original.a;
     }
 
@@ -1566,11 +1444,11 @@ pub fn gradientLinearImage(ctx: *Context, args: anytype) !void {
     const height = ctx.image.height;
 
     // Parse hex colors
-    const start_rgba = try parseHexColor(start_color);
-    const end_rgba = try parseHexColor(end_color);
+    const start_rgba = try utils.parseHexColor(start_color);
+    const end_rgba = try utils.parseHexColor(end_color);
 
     // Convert angle to radians
-    const angle_rad = angle * std.math.pi / 180.0;
+    const angle_rad = angle * utils.DEG_TO_RAD;
 
     // Calculate gradient direction vector
     const dir_x = @cos(angle_rad);
@@ -1679,31 +1557,37 @@ pub fn gradientLinearImage(ctx: *Context, args: anytype) !void {
     }
 
     // Handle remaining pixels with scalar operations
+    // Pre-calculate normalization factors
+    const inv_width_minus1 = 1.0 / @as(f32, @floatFromInt(width - 1));
+    const inv_height_minus1 = 1.0 / @as(f32, @floatFromInt(height - 1));
+    const one_minus_opacity = 1.0 - opacity;
+
     while (i < pixel_count) : (i += 1) {
         const y = i / width;
         const x = i % width;
 
         // Calculate position along gradient (from -1 to 1)
-        const x_norm = @as(f32, @floatFromInt(x)) / @as(f32, @floatFromInt(width - 1)) - 0.5;
-        const y_norm = @as(f32, @floatFromInt(y)) / @as(f32, @floatFromInt(height - 1)) - 0.5;
+        const x_norm = @as(f32, @floatFromInt(x)) * inv_width_minus1 - 0.5;
+        const y_norm = @as(f32, @floatFromInt(y)) * inv_height_minus1 - 0.5;
 
         // Project onto gradient direction
         const t = x_norm * dir_x + y_norm * dir_y + 0.5; // Add 0.5 to shift to 0-1 range
         const clamped_t = std.math.clamp(t, 0.0, 1.0);
+        const one_minus_t = 1.0 - clamped_t;
 
         // Interpolate colors
-        const r = @as(u8, @intFromFloat(@as(f32, @floatFromInt(start_rgba.r)) * (1.0 - clamped_t) + @as(f32, @floatFromInt(end_rgba.r)) * clamped_t));
-        const g = @as(u8, @intFromFloat(@as(f32, @floatFromInt(start_rgba.g)) * (1.0 - clamped_t) + @as(f32, @floatFromInt(end_rgba.g)) * clamped_t));
-        const b = @as(u8, @intFromFloat(@as(f32, @floatFromInt(start_rgba.b)) * (1.0 - clamped_t) + @as(f32, @floatFromInt(end_rgba.b)) * clamped_t));
-        const a = @as(u8, @intFromFloat(@as(f32, @floatFromInt(start_rgba.a)) * (1.0 - clamped_t) + @as(f32, @floatFromInt(end_rgba.a)) * clamped_t));
+        const r = @as(u8, @intFromFloat(utils.u8ToF32(start_rgba.r) * one_minus_t + utils.u8ToF32(end_rgba.r) * clamped_t));
+        const g = @as(u8, @intFromFloat(utils.u8ToF32(start_rgba.g) * one_minus_t + utils.u8ToF32(end_rgba.g) * clamped_t));
+        const b = @as(u8, @intFromFloat(utils.u8ToF32(start_rgba.b) * one_minus_t + utils.u8ToF32(end_rgba.b) * clamped_t));
+        const a = @as(u8, @intFromFloat(utils.u8ToF32(start_rgba.a) * one_minus_t + utils.u8ToF32(end_rgba.a) * clamped_t));
 
         const original = pixels[i];
 
         // Blend with original image
-        const blended_r = @as(u8, @intFromFloat(@as(f32, @floatFromInt(original.r)) * (1.0 - opacity) + @as(f32, @floatFromInt(r)) * opacity));
-        const blended_g = @as(u8, @intFromFloat(@as(f32, @floatFromInt(original.g)) * (1.0 - opacity) + @as(f32, @floatFromInt(g)) * opacity));
-        const blended_b = @as(u8, @intFromFloat(@as(f32, @floatFromInt(original.b)) * (1.0 - opacity) + @as(f32, @floatFromInt(b)) * opacity));
-        const blended_a = @as(u8, @intFromFloat(@as(f32, @floatFromInt(original.a)) * (1.0 - opacity) + @as(f32, @floatFromInt(a)) * opacity));
+        const blended_r = @as(u8, @intFromFloat(utils.u8ToF32(original.r) * one_minus_opacity + utils.u8ToF32(r) * opacity));
+        const blended_g = @as(u8, @intFromFloat(utils.u8ToF32(original.g) * one_minus_opacity + utils.u8ToF32(g) * opacity));
+        const blended_b = @as(u8, @intFromFloat(utils.u8ToF32(original.b) * one_minus_opacity + utils.u8ToF32(b) * opacity));
+        const blended_a = @as(u8, @intFromFloat(utils.u8ToF32(original.a) * one_minus_opacity + utils.u8ToF32(a) * opacity));
 
         pixels[i].r = blended_r;
         pixels[i].g = blended_g;
@@ -1746,8 +1630,8 @@ pub fn gradientRadialImage(ctx: *Context, args: anytype) !void {
     const height = ctx.image.height;
 
     // Parse hex colors
-    const start_rgba = try parseHexColor(start_color);
-    const end_rgba = try parseHexColor(end_color);
+    const start_rgba = try utils.parseHexColor(start_color);
+    const end_rgba = try utils.parseHexColor(end_color);
 
     // Calculate center in pixel coordinates
     const cx = center_x * @as(f32, @floatFromInt(width));
@@ -2016,25 +1900,7 @@ fn applyEdgeDetectionKernel(pixels: []const img.color.Rgba32, output: []img.colo
     }
 }
 
-/// Helper function to parse hex color string (e.g., "#FF0000" or "#FF0000FF")
-fn parseHexColor(hex: []const u8) !img.color.Rgba32 {
-    if (hex.len != 7 and hex.len != 9) {
-        return error.InvalidHexColor;
-    }
-    if (hex[0] != '#') {
-        return error.InvalidHexColor;
-    }
-
-    // Parse RGB components
-    const r = try std.fmt.parseInt(u8, hex[1..3], 16);
-    const g = try std.fmt.parseInt(u8, hex[3..5], 16);
-    const b = try std.fmt.parseInt(u8, hex[5..7], 16);
-
-    // Parse alpha if provided, otherwise default to 255
-    const a = if (hex.len == 9) try std.fmt.parseInt(u8, hex[7..9], 16) else @as(u8, 255);
-
-    return img.color.Rgba32{ .r = r, .g = g, .b = b, .a = a };
-}
+// parseHexColor moved to utils.parseHexColor
 
 /// Helper function to apply blur to a specific region
 fn applyBlurToRegion(pixels: []img.color.Rgba32, width: usize, height: usize, start_x: usize, start_y: usize, end_x: usize, end_y: usize, radius: usize) void {

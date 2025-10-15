@@ -23,8 +23,8 @@
 | `hue-shift` | `hue-shift <degrees>` | Shift hue (-180 to 180) |
 | `adjust-hsl` | `adjust-hsl <hue> <sat> <light>` | Adjust hue, saturation, and lightness separately |
 | `adjust-channels` | `adjust-channels <red> <green> <blue>` | Adjust RGB channel intensities |
-| `colorize` | `colorize <r> <g> <b> <intensity>` | Tint image with RGB color |
-| `duotone` | `duotone <dark_r> <dark_g> <dark_b> <light_r> <light_g> <light_b>` | Apply duotone effect (Spotify-style) |
+| `colorize` | `colorize <#RRGGBB> <intensity>` | Tint image with hex color |
+| `duotone` | `duotone <#dark> <#light>` | Apply duotone effect (Spotify-style) using hex colors |
 | `posterize` | `posterize <levels>` | Reduce color levels (2-256) |
 | `threshold` | `threshold <value>` | Convert to black/white based on luminance (0-255) |
 | `solarize` | `solarize <threshold>` | Invert colors above threshold (0-255) |
@@ -89,7 +89,7 @@ zig build run -- portrait.jpg median-filter 3 vibrance 0.2 contrast 1.1 sharpen 
 zig build run -- *.jpg grayscale posterize 6 -d output/
 
 # Creative duotone effect
-zig build run -- photo.jpg duotone 50 50 50 200 200 200 contrast 1.2 -o duotone.png
+zig build run -- photo.jpg duotone #333333 #C8C8C8 contrast 1.2 -o duotone.png
 
 # Edge detection for comic effect
 zig build run -- photo.jpg edge-detect posterize 6 contrast 1.5 -o comic.png

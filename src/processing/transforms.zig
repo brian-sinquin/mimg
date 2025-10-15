@@ -29,12 +29,16 @@ pub fn resizeImage(ctx: *Context, args: anytype) !void {
     // Initialize all pixels to transparent
     @memset(new_pixels, img.color.Rgba32{ .r = 0, .g = 0, .b = 0, .a = 0 });
 
+    // Pre-calculate scale factors (multiplication is faster than division)
+    const scale_y = @as(f32, @floatFromInt(old_height)) / @as(f32, @floatFromInt(new_height));
+    const scale_x = @as(f32, @floatFromInt(old_width)) / @as(f32, @floatFromInt(new_width));
+
     // Nearest neighbor scaling
     for (0..new_height) |y| {
-        const src_y = @as(usize, @intFromFloat(@as(f32, @floatFromInt(y)) * @as(f32, @floatFromInt(old_height)) / @as(f32, @floatFromInt(new_height))));
+        const src_y = @as(usize, @intFromFloat(@as(f32, @floatFromInt(y)) * scale_y));
         const src_y_clamped = @min(src_y, old_height - 1);
         for (0..new_width) |x| {
-            const src_x = @as(usize, @intFromFloat(@as(f32, @floatFromInt(x)) * @as(f32, @floatFromInt(old_width)) / @as(f32, @floatFromInt(new_width))));
+            const src_x = @as(usize, @intFromFloat(@as(f32, @floatFromInt(x)) * scale_x));
             const src_x_clamped = @min(src_x, old_width - 1);
             const src_idx = src_y_clamped * old_width + src_x_clamped;
             const dst_idx = y * new_width + x;
@@ -263,7 +267,7 @@ pub fn rotate270ClockwiseImage(ctx: *Context, args: anytype) !void {
 pub fn rotateArbitraryImage(ctx: *Context, degrees: f64) !void {
     try utils.convertToRgba32(ctx);
 
-    const radians = degrees * std.math.pi / 180.0;
+    const radians = degrees * @as(f64, utils.DEG_TO_RAD);
     const cos_theta = @cos(radians);
     const sin_theta = @sin(radians);
 
@@ -414,18 +418,6 @@ pub fn rotateImage(ctx: *Context, args: anytype) !void {
     }
 }
 
-pub fn mirrorHorizontalImage(ctx: *Context, args: anytype) !void {
-    _ = args;
-    // Mirror horizontal is the same as flip horizontal
-    try flipHorizontalImage(ctx, .{});
-}
-
-pub fn mirrorVerticalImage(ctx: *Context, args: anytype) !void {
-    _ = args;
-    // Mirror vertical is the same as flip vertical
-    try flipVerticalImage(ctx, .{});
-}
-
 pub fn flipImage(ctx: *Context, args: anytype) !void {
     const direction = args[0];
     if (std.mem.eql(u8, direction, "horizontal")) {
@@ -548,12 +540,12 @@ pub fn roundCornersImage(ctx: *Context, args: anytype) !void {
 // Signed Distance Field function for rounded rectangle
 fn calculateRoundedRectSDF(x: f32, y: f32, width: f32, height: f32, radius: f32) f32 {
     // Convert to center-based coordinates
-    const cx = x - (width - 1.0) / 2.0;
-    const cy = y - (height - 1.0) / 2.0;
+    const cx = x - (width - 1.0) * utils.INV_2;
+    const cy = y - (height - 1.0) * utils.INV_2;
 
     // Half dimensions
-    const half_w = (width - 1.0) / 2.0;
-    const half_h = (height - 1.0) / 2.0;
+    const half_w = (width - 1.0) * utils.INV_2;
+    const half_h = (height - 1.0) * utils.INV_2;
 
     // Calculate distance to rounded rectangle using SDF
     const dx = @max(0.0, @abs(cx) - (half_w - radius));

@@ -210,6 +210,127 @@
 			"args": [],
 			"problemMatcher": [],
 			"group": "build"
+		},
+		{
+			"label": "zig-build-and-test",
+			"type": "shell",
+			"command": "zig",
+			"args": [
+				"build",
+				"test"
+			],
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": "build"
+		},
+		{
+			"label": "zig-build-gallery",
+			"type": "shell",
+			"command": "zig",
+			"args": [
+				"build",
+				"gallery"
+			],
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": "build"
+		},
+		{
+			"label": "zig-build",
+			"type": "shell",
+			"command": "zig",
+			"args": [
+				"build"
+			],
+			"group": "build"
+		},
+		{
+			"label": "zig-build-and-test",
+			"type": "shell",
+			"command": "zig",
+			"args": [
+				"build",
+				"test"
+			],
+			"group": "build"
+		},
+		{
+			"label": "zig-build",
+			"type": "shell",
+			"command": "zig",
+			"args": [
+				"build"
+			],
+			"group": "build"
+		},
+		{
+			"label": "zig-build-and-test",
+			"type": "shell",
+			"command": "zig",
+			"args": [
+				"build",
+				"test"
+			],
+			"group": "build"
+		},
+		{
+			"label": "zig-build",
+			"type": "shell",
+			"command": "zig",
+			"args": [
+				"build"
+			],
+			"group": "build"
+		},
+		{
+			"label": "zig-build-and-test",
+			"type": "shell",
+			"command": "zig",
+			"args": [
+				"build",
+				"test"
+			],
+			"group": "build"
+		},
+		{
+			"label": "zig-build",
+			"type": "shell",
+			"command": "zig",
+			"args": [
+				"build"
+			],
+			"group": "build"
+		},
+		{
+			"label": "zig-build-and-test",
+			"type": "shell",
+			"command": "zig",
+			"args": [
+				"build",
+				"test"
+			],
+			"group": "build"
+		},
+		{
+			"label": "zig-build",
+			"type": "shell",
+			"command": "zig",
+			"args": [
+				"build"
+			],
+			"group": "build"
+		},
+		{
+			"label": "zig-build-and-test",
+			"type": "shell",
+			"command": "zig",
+			"args": [
+				"build",
+				"test"
+			],
+			"group": "build"
 		}
 	]
 }
