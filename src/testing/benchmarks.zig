@@ -1,13 +1,16 @@
 const std = @import("std");
+const build_options = @import("build_options");
 const img = @import("zigimg");
-const basic = @import("../processing/basic.zig");
+const color = @import("../processing/color.zig");
+const filters = @import("../processing/filters.zig");
+const transforms = @import("../processing/transforms.zig");
 const types = @import("../core/types.zig");
 
 /// Create a test image with specified dimensions and color
-fn createBenchmarkImage(allocator: std.mem.Allocator, width: usize, height: usize, color: img.color.Rgba32) !img.Image {
+fn createBenchmarkImage(allocator: std.mem.Allocator, width: usize, height: usize, pixel_color: img.color.Rgba32) !img.Image {
     const image = try img.Image.create(allocator, width, height, .rgba32);
     for (image.pixels.rgba32) |*pixel| {
-        pixel.* = color;
+        pixel.* = pixel_color;
     }
     return image;
 }
@@ -88,21 +91,21 @@ pub fn runBenchmarks(allocator: std.mem.Allocator) !void {
         std.debug.print("------------------------\n", .{});
 
         // Color operations
-        try benchmarkOperation(allocator, "Grayscale", basic.grayscaleImage, .{}, width, height, iterations);
-        try benchmarkOperation(allocator, "Invert Colors", basic.invertColors, .{}, width, height, iterations);
-        try benchmarkOperation(allocator, "Adjust Brightness (+50)", basic.adjustBrightness, .{50}, width, height, iterations);
-        try benchmarkOperation(allocator, "Adjust Contrast (2.0x)", basic.adjustContrast, .{2.0}, width, height, iterations);
-        try benchmarkOperation(allocator, "Apply Sepia", basic.applySepia, .{}, width, height, iterations);
+        try benchmarkOperation(allocator, "Grayscale", color.grayscaleImage, .{}, width, height, iterations);
+        try benchmarkOperation(allocator, "Invert Colors", color.invertColors, .{}, width, height, iterations);
+        try benchmarkOperation(allocator, "Adjust Brightness (+50)", color.adjustBrightness, .{50}, width, height, iterations);
+        try benchmarkOperation(allocator, "Adjust Contrast (2.0x)", color.adjustContrast, .{2.0}, width, height, iterations);
+        try benchmarkOperation(allocator, "Apply Sepia", color.applySepia, .{}, width, height, iterations);
 
         // Filter operations
-        try benchmarkOperation(allocator, "Box Blur (3x3)", basic.blurImage, .{3}, width, height, iterations);
-        try benchmarkOperation(allocator, "Gaussian Blur (σ=1.0)", basic.gaussianBlurImage, .{1.0}, width, height, iterations);
-        try benchmarkOperation(allocator, "Sharpen", basic.sharpenImage, .{1.0}, width, height, iterations);
-        try benchmarkOperation(allocator, "Median Filter (3x3)", basic.medianFilterImage, .{3}, width, height, iterations);
+        try benchmarkOperation(allocator, "Box Blur (3x3)", filters.blurImage, .{3}, width, height, iterations);
+        try benchmarkOperation(allocator, "Gaussian Blur (sigma=1.0)", filters.gaussianBlurImage, .{1.0}, width, height, iterations);
+        try benchmarkOperation(allocator, "Sharpen", filters.sharpenImage, .{1.0}, width, height, iterations);
+        try benchmarkOperation(allocator, "Median Filter (3x3)", filters.medianFilterImage, .{3}, width, height, iterations);
 
         // Transform operations
-        try benchmarkOperation(allocator, "Flip Horizontal", basic.flipImage, .{"horizontal"}, width, height, iterations);
-        try benchmarkOperation(allocator, "Rotate 90°", basic.rotateImage, .{90}, width, height, iterations);
+        try benchmarkOperation(allocator, "Flip Horizontal", transforms.flipImage, .{"horizontal"}, width, height, iterations);
+        try benchmarkOperation(allocator, "Rotate 90 degrees", transforms.rotateImage, .{90}, width, height, iterations);
 
         std.debug.print("\n", .{});
     }

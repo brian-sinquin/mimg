@@ -1,0 +1,336 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "zig-build-run-emboss",
+			"type": "shell",
+			"command": "zig",
+			"args": [
+				"build",
+				"run",
+				"--",
+				"examples\\gallery\\lena.png",
+				"emboss",
+				"0.5"
+			],
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": "build"
+		},
+		{
+			"label": "zig-build-run-emboss-default",
+			"type": "shell",
+			"command": "zig",
+			"args": [
+				"build",
+				"run",
+				"--",
+				"examples\\gallery\\lena.png",
+				"emboss"
+			],
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": "build"
+		},
+		{
+			"label": "zig-build-run-color-emboss",
+			"type": "shell",
+			"command": "zig",
+			"args": [
+				"build",
+				"run",
+				"--",
+				"examples\\gallery\\lena.png",
+				"color-emboss",
+				"0.75"
+			],
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": "build"
+		},
+		{
+			"label": "zig-build",
+			"type": "shell",
+			"command": "zig",
+			"args": [
+				"build"
+			],
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": "build"
+		},
+		{
+			"label": "zig-build-run-emboss-req",
+			"type": "shell",
+			"command": "zig",
+			"args": [
+				"build",
+				"run",
+				"--",
+				"examples\\gallery\\lena.png",
+				"emboss",
+				"0.5"
+			],
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": "build"
+		},
+		{
+			"label": "zig-build-run-emboss-missing",
+			"type": "shell",
+			"command": "zig",
+			"args": [
+				"build",
+				"run",
+				"--",
+				"examples\\gallery\\lena.png",
+				"emboss"
+			],
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": "build"
+		},
+		{
+			"label": "zig-build-run-color-emboss-req",
+			"type": "shell",
+			"command": "zig",
+			"args": [
+				"build",
+				"run",
+				"--",
+				"examples\\gallery\\lena.png",
+				"color-emboss",
+				"0.75"
+			],
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": "build"
+		},
+		{
+			"label": "zig-build-run-color-emboss-missing",
+			"type": "shell",
+			"command": "zig",
+			"args": [
+				"build",
+				"run",
+				"--",
+				"examples\\gallery\\lena.png",
+				"color-emboss"
+			],
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": "build"
+		},
+		{
+			"label": "zig-build-run-emboss-missing-2",
+			"type": "shell",
+			"command": "zig",
+			"args": [
+				"build",
+				"run",
+				"--",
+				"examples\\gallery\\lena.png",
+				"emboss"
+			],
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": "build"
+		},
+		{
+			"label": "zig-build-run-emboss-req-again",
+			"type": "shell",
+			"command": "zig",
+			"args": [
+				"build",
+				"run",
+				"--",
+				"examples\\gallery\\lena.png",
+				"emboss",
+				"0.5"
+			],
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": "build"
+		},
+		{
+			"label": "zig-build-run-emboss-missing-3",
+			"type": "shell",
+			"command": "zig",
+			"args": [
+				"build",
+				"run",
+				"--",
+				"examples\\gallery\\lena.png",
+				"emboss"
+			],
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": "build"
+		},
+		{
+			"label": "zig-build-run-once",
+			"type": "shell",
+			"command": "zig",
+			"args": [
+				"build",
+				"run",
+				"--",
+				"examples\\gallery\\lena.png",
+				"emboss",
+				"0.5"
+			],
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": "build"
+		},
+		{
+			"label": "zig build gallery",
+			"type": "shell",
+			"command": "zig build gallery",
+			"args": [],
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "zig build gallery",
+			"type": "shell",
+			"command": "zig build gallery",
+			"args": [],
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "zig-build-and-test",
+			"type": "shell",
+			"command": "zig",
+			"args": [
+				"build",
+				"test"
+			],
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": "build"
+		},
+		{
+			"label": "zig-build-gallery",
+			"type": "shell",
+			"command": "zig",
+			"args": [
+				"build",
+				"gallery"
+			],
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": "build"
+		},
+		{
+			"label": "zig-build",
+			"type": "shell",
+			"command": "zig",
+			"args": [
+				"build"
+			],
+			"group": "build"
+		},
+		{
+			"label": "zig-build-and-test",
+			"type": "shell",
+			"command": "zig",
+			"args": [
+				"build",
+				"test"
+			],
+			"group": "build"
+		},
+		{
+			"label": "zig-build",
+			"type": "shell",
+			"command": "zig",
+			"args": [
+				"build"
+			],
+			"group": "build"
+		},
+		{
+			"label": "zig-build-and-test",
+			"type": "shell",
+			"command": "zig",
+			"args": [
+				"build",
+				"test"
+			],
+			"group": "build"
+		},
+		{
+			"label": "zig-build",
+			"type": "shell",
+			"command": "zig",
+			"args": [
+				"build"
+			],
+			"group": "build"
+		},
+		{
+			"label": "zig-build-and-test",
+			"type": "shell",
+			"command": "zig",
+			"args": [
+				"build",
+				"test"
+			],
+			"group": "build"
+		},
+		{
+			"label": "zig-build",
+			"type": "shell",
+			"command": "zig",
+			"args": [
+				"build"
+			],
+			"group": "build"
+		},
+		{
+			"label": "zig-build-and-test",
+			"type": "shell",
+			"command": "zig",
+			"args": [
+				"build",
+				"test"
+			],
+			"group": "build"
+		},
+		{
+			"label": "zig-build",
+			"type": "shell",
+			"command": "zig",
+			"args": [
+				"build"
+			],
+			"group": "build"
+		},
+		{
+			"label": "zig-build-and-test",
+			"type": "shell",
+			"command": "zig",
+			"args": [
+				"build",
+				"test"
+			],
+			"group": "build"
+		}
+	]
+}

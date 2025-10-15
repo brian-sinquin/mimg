@@ -4,18 +4,6 @@ const filters = @import("filters.zig");
 const transforms = @import("transforms.zig");
 const std = @import("std");
 
-// Wrapper function for flip that handles string parsing
-fn flipImage(ctx: *types.Context, args: anytype) !void {
-    const direction = args[0];
-    if (std.mem.eql(u8, direction, "horizontal")) {
-        try transforms.flipHorizontalImage(ctx, .{});
-    } else if (std.mem.eql(u8, direction, "vertical")) {
-        try transforms.flipVerticalImage(ctx, .{});
-    } else {
-        return error.InvalidParameters;
-    }
-}
-
 // All image modifier definitions
 pub const modifiers = [_]types.Argument{
     .{
@@ -51,12 +39,20 @@ pub const modifiers = [_]types.Argument{
         .func = transforms.rotateImage,
     },
     .{
+        .names = .{ .single = "round-corners" },
+        .option_type = types.ArgType.Modifier,
+        .param_types = &[_]type{u16},
+        .description = "Round the corners of the image with a specified radius",
+        .usage = "round-corners <radius>",
+        .func = transforms.roundCornersImage,
+    },
+    .{
         .names = .{ .single = "flip" },
         .option_type = types.ArgType.Modifier,
         .param_types = &[_]type{[]const u8},
         .description = "Flip the image horizontally or vertically",
         .usage = "flip <horizontal|vertical>",
-        .func = flipImage,
+        .func = transforms.flipImage,
     },
     .{
         .names = .{ .single = "grayscale" },
@@ -133,10 +129,18 @@ pub const modifiers = [_]types.Argument{
     .{
         .names = .{ .single = "emboss" },
         .option_type = types.ArgType.Modifier,
-        .param_types = &[_]type{},
+        .param_types = &[_]type{f32},
         .description = "Apply emboss effect for 3D-like appearance",
-        .usage = "emboss",
+        .usage = "emboss <strength>",
         .func = filters.embossImage,
+    },
+    .{
+        .names = .{ .single = "color-emboss" },
+        .option_type = types.ArgType.Modifier,
+        .param_types = &[_]type{f32},
+        .description = "Apply emboss effect with color preservation",
+        .usage = "color-emboss <strength>",
+        .func = filters.colorEmbossImage,
     },
     .{
         .names = .{ .single = "vignette" },
@@ -145,6 +149,14 @@ pub const modifiers = [_]types.Argument{
         .description = "Apply vignette effect to darken image corners",
         .usage = "vignette <intensity (0.0-1.0)>",
         .func = filters.vignetteImage,
+    },
+    .{
+        .names = .{ .single = "glow" },
+        .option_type = types.ArgType.Modifier,
+        .param_types = &[_]type{ f32, u8 },
+        .description = "Add a soft glow effect around bright areas",
+        .usage = "glow <intensity (0.0-1.0)> <radius (1-20)>",
+        .func = filters.glowImage,
     },
     .{
         .names = .{ .single = "posterize" },
@@ -161,6 +173,14 @@ pub const modifiers = [_]types.Argument{
         .description = "Shift the hue of all colors in the image",
         .usage = "hue-shift <degrees (-180 to 180)>",
         .func = color.hueShiftImage,
+    },
+    .{
+        .names = .{ .single = "adjust-hsl" },
+        .option_type = types.ArgType.Modifier,
+        .param_types = &[_]type{ f32, f32, f32 },
+        .description = "Adjust hue, saturation, and lightness separately",
+        .usage = "adjust-hsl <hue_shift> <saturation_factor> <lightness_factor>",
+        .func = color.adjustHSL,
     },
     .{
         .names = .{ .single = "median-filter" },
@@ -211,6 +231,14 @@ pub const modifiers = [_]types.Argument{
         .func = filters.addNoiseImage,
     },
     .{
+        .names = .{ .single = "denoise" },
+        .option_type = types.ArgType.Modifier,
+        .param_types = &[_]type{u8},
+        .description = "Remove noise from image using bilateral filter",
+        .usage = "denoise <strength (1-10)>",
+        .func = filters.denoiseImage,
+    },
+    .{
         .names = .{ .single = "exposure" },
         .option_type = types.ArgType.Modifier,
         .param_types = &[_]type{f32},
@@ -235,19 +263,35 @@ pub const modifiers = [_]types.Argument{
         .func = color.equalizeImage,
     },
     .{
+        .names = .{ .single = "equalize-area" },
+        .option_type = types.ArgType.Modifier,
+        .param_types = &[_]type{ u16, u16, u16, u16 },
+        .description = "Apply histogram equalization to a specific region",
+        .usage = "equalize-area <x> <y> <width> <height>",
+        .func = color.equalizeAreaImage,
+    },
+    .{
         .names = .{ .single = "colorize" },
         .option_type = types.ArgType.Modifier,
-        .param_types = &[_]type{ u8, u8, u8, f32 },
-        .description = "Colorize/tint image with RGB color",
-        .usage = "colorize <r> <g> <b> <intensity (0.0-1.0)>",
+        .param_types = &[_]type{ []const u8, f32 },
+        .description = "Colorize/tint image with hex color (#RRGGBB)",
+        .usage = "colorize <#RRGGBB> <intensity (0.0-1.0)>",
         .func = color.colorizeImage,
+    },
+    .{
+        .names = .{ .single = "adjust-channels" },
+        .option_type = types.ArgType.Modifier,
+        .param_types = &[_]type{ f32, f32, f32 },
+        .description = "Adjust the intensity of individual RGB color channels",
+        .usage = "adjust-channels <red_mult> <green_mult> <blue_mult>",
+        .func = color.adjustChannels,
     },
     .{
         .names = .{ .single = "duotone" },
         .option_type = types.ArgType.Modifier,
-        .param_types = &[_]type{ u8, u8, u8, u8, u8, u8 },
-        .description = "Apply duotone effect (Spotify-style)",
-        .usage = "duotone <dark_r> <dark_g> <dark_b> <light_r> <light_g> <light_b>",
+        .param_types = &[_]type{ []const u8, []const u8 },
+        .description = "Apply duotone effect (Spotify-style) with hex colors",
+        .usage = "duotone <#dark> <#light>",
         .func = color.duotoneImage,
     },
     .{
@@ -257,5 +301,45 @@ pub const modifiers = [_]types.Argument{
         .description = "Apply oil painting artistic effect",
         .usage = "oil-painting <radius>",
         .func = filters.oilPaintingImage,
+    },
+    .{
+        .names = .{ .single = "tilt-shift" },
+        .option_type = types.ArgType.Modifier,
+        .param_types = &[_]type{ f32, f32, f32 },
+        .description = "Advanced tilt-shift effect with two-pass Gaussian blur and smooth focus transitions for realistic miniature appearance",
+        .usage = "tilt-shift <blur_strength> <focus_position> <focus_width>",
+        .func = filters.tiltShiftImage,
+    },
+    .{
+        .names = .{ .single = "edge-enhancement" },
+        .option_type = types.ArgType.Modifier,
+        .param_types = &[_]type{f32},
+        .description = "Enhance edges by combining edge detection with original image",
+        .usage = "edge-enhancement <strength (0.0-2.0)>",
+        .func = filters.edgeEnhancementImage,
+    },
+    .{
+        .names = .{ .single = "gradient-linear" },
+        .option_type = types.ArgType.Modifier,
+        .param_types = &[_]type{ []const u8, []const u8, f32, f32 },
+        .description = "Apply linear gradient overlay",
+        .usage = "gradient-linear <start_color> <end_color> <angle> <opacity>",
+        .func = filters.gradientLinearImage,
+    },
+    .{
+        .names = .{ .single = "gradient-radial" },
+        .option_type = types.ArgType.Modifier,
+        .param_types = &[_]type{ f32, f32, []const u8, []const u8, f32, f32 },
+        .description = "Apply radial gradient overlay",
+        .usage = "gradient-radial <center_x> <center_y> <start_color> <end_color> <radius> <opacity>",
+        .func = filters.gradientRadialImage,
+    },
+    .{
+        .names = .{ .single = "censor" },
+        .option_type = types.ArgType.Modifier,
+        .param_types = &[_]type{ f32, f32, f32, f32, []const u8, usize },
+        .description = "Apply censoring effect (blur/pixelate/black) to a region",
+        .usage = "censor <x> <y> <width> <height> <method> <strength>",
+        .func = filters.censorImage,
     },
 };

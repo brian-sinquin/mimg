@@ -126,24 +126,7 @@ pub fn parseArgs(comptime type_list: []const type, it: *std.process.ArgIterator)
     return tuple;
 }
 
-pub fn parseNextArg(comptime T: type, it: *std.process.ArgIterator) types.ParseArgError!T {
-    const arg = it.next() orelse {
-        return types.ParseArgError.MissingArgument;
-    };
-    if (T == []const u8) {
-        return arg;
-    }
-
-    return switch (@typeInfo(T)) {
-        .float => std.fmt.parseFloat(T, arg) catch {
-            return types.ParseArgError.InvalidArgument;
-        },
-        .int => std.fmt.parseInt(T, arg, 10) catch {
-            return types.ParseArgError.InvalidArgument;
-        },
-        else => @compileError("Unsupported parameter type in parseNextArg"),
-    };
-}
+// parseNextArg removed (unused)
 
 /// Downloads the content of a file from a URL into memory (does not write to disk).
 pub fn downloadFileToMemory(allocator: std.mem.Allocator, url: []const u8) ![]u8 {
@@ -271,23 +254,7 @@ pub fn loadImageFromSource(ctx: *types.Context, source: []const u8) !img.Image {
     }
 }
 
-pub fn getPixel(pixels: []const img.color.Rgba32, width: usize, x: usize, y: usize) img.color.Rgba32 {
-    // Input validation
-    if (width == 0) unreachable;
-    if (x >= width) unreachable;
-    const idx = y * width + x;
-    if (idx >= pixels.len) unreachable;
-    return pixels[idx];
-}
-
-pub fn setPixel(pixels: []img.color.Rgba32, width: usize, x: usize, y: usize, color: img.color.Rgba32) void {
-    // Input validation
-    if (width == 0) unreachable;
-    if (x >= width) unreachable;
-    const idx = y * width + x;
-    if (idx >= pixels.len) unreachable;
-    pixels[idx] = color;
-}
+// getPixel/setPixel removed (not used)
 
 pub fn getPixelSafe(pixels: []const img.color.Rgba32, width: usize, height: usize, x: i32, y: i32) ?img.color.Rgba32 {
     if (x < 0 or y < 0 or x >= width or y >= height) return null;
@@ -302,23 +269,39 @@ pub fn getPixelClamped(pixels: []const img.color.Rgba32, width: usize, height: u
     return pixels[idx];
 }
 
-pub fn clampU8(value: f32) u8 {
+// Inline helpers for better performance - these are called frequently in hot paths
+pub inline fn clampU8(value: f32) u8 {
     return @as(u8, @intFromFloat(std.math.clamp(value, 0.0, 255.0)));
 }
 
-pub fn clampI16ToU8(value: i16) u8 {
-    return @as(u8, @intCast(std.math.clamp(value, 0, 255)));
+pub inline fn u8ToF32(value: u8) f32 {
+    return @as(f32, @floatFromInt(value));
 }
 
+pub inline fn luminanceF32(r: f32, g: f32, b: f32) f32 {
+    return 0.299 * r + 0.587 * g + 0.114 * b;
+}
+
+/// Comptime constants for common mathematical operations (calculated once at compile time)
+pub const INV_255: f32 = 1.0 / 255.0;
+pub const INV_3: f32 = 1.0 / 3.0;
+pub const INV_2: f32 = 1.0 / 2.0;
+pub const SQRT_3: f32 = std.math.sqrt(3.0);
+pub const DEG_TO_RAD: f32 = std.math.pi / 180.0;
+
+/// Normalize u8 to 0.0-1.0 range (faster than division with multiplication by reciprocal)
+pub inline fn normalizeU8(value: u8) f32 {
+    return u8ToF32(value) * INV_255;
+}
+
+// clampI16ToU8 removed (unused)
+
 pub fn rgbToLuminance(r: u8, g: u8, b: u8) f32 {
-    return 0.299 * @as(f32, @floatFromInt(r)) +
-        0.587 * @as(f32, @floatFromInt(g)) +
-        0.114 * @as(f32, @floatFromInt(b));
+    return luminanceF32(u8ToF32(r), u8ToF32(g), u8ToF32(b));
 }
 
 pub fn rgbToLuminanceU8(r: u8, g: u8, b: u8) u8 {
-    const lum = rgbToLuminance(r, g, b);
-    return @as(u8, @intFromFloat(std.math.clamp(lum, 0.0, 255.0)));
+    return clampU8(rgbToLuminance(r, g, b));
 }
 
 pub fn createTempBufferReuse(allocator: std.mem.Allocator, pixels: []img.color.Rgba32, existing_buffer: ?[]img.color.Rgba32) ![]img.color.Rgba32 {
@@ -337,76 +320,6 @@ pub fn createTempBufferFromPixels(allocator: std.mem.Allocator, pixels: []const 
     const temp_pixels = try allocator.alloc(img.color.Rgba32, pixels.len);
     @memcpy(temp_pixels, pixels);
     return temp_pixels;
-}
-
-pub fn applyKernel3x3(
-    pixels: []img.color.Rgba32,
-    temp_pixels: []const img.color.Rgba32,
-    width: usize,
-    height: usize,
-    x: usize,
-    y: usize,
-    kernel: [3][3]f32,
-) struct { r: f32, g: f32, b: f32 } {
-    // Input validation
-    if (width == 0 or height == 0) unreachable;
-    if (x >= width or y >= height) unreachable;
-    if (temp_pixels.len != pixels.len) unreachable;
-
-    var sum_r: f32 = 0.0;
-    var sum_g: f32 = 0.0;
-    var sum_b: f32 = 0.0;
-
-    for (0..3) |ky| {
-        for (0..3) |kx| {
-            const px = @as(i32, @intCast(x)) + @as(i32, @intCast(kx)) - 1;
-            const py = @as(i32, @intCast(y)) + @as(i32, @intCast(ky)) - 1;
-
-            const pixel = getPixelClamped(temp_pixels, width, height, px, py);
-            const weight = kernel[ky][kx];
-
-            sum_r += @as(f32, @floatFromInt(pixel.r)) * weight;
-            sum_g += @as(f32, @floatFromInt(pixel.g)) * weight;
-            sum_b += @as(f32, @floatFromInt(pixel.b)) * weight;
-        }
-    }
-
-    return .{ .r = sum_r, .g = sum_g, .b = sum_b };
-}
-
-pub fn applyKernel3x3i32(
-    pixels: []img.color.Rgba32,
-    temp_pixels: []const img.color.Rgba32,
-    width: usize,
-    height: usize,
-    x: usize,
-    y: usize,
-    kernel: [3][3]i32,
-) struct { r: i32, g: i32, b: i32 } {
-    // Input validation
-    if (width == 0 or height == 0) unreachable;
-    if (x >= width or y >= height) unreachable;
-    if (temp_pixels.len != pixels.len) unreachable;
-
-    var sum_r: i32 = 0;
-    var sum_g: i32 = 0;
-    var sum_b: i32 = 0;
-
-    for (0..3) |ky| {
-        for (0..3) |kx| {
-            const px = @as(i32, @intCast(x)) + @as(i32, @intCast(kx)) - 1;
-            const py = @as(i32, @intCast(y)) + @as(i32, @intCast(ky)) - 1;
-
-            const pixel = getPixelClamped(temp_pixels, width, height, px, py);
-            const weight = kernel[ky][kx];
-
-            sum_r += @as(i32, @intCast(pixel.r)) * weight;
-            sum_g += @as(i32, @intCast(pixel.g)) * weight;
-            sum_b += @as(i32, @intCast(pixel.b)) * weight;
-        }
-    }
-
-    return .{ .r = sum_r, .g = sum_g, .b = sum_b };
 }
 
 pub fn convertToRgba32(ctx: *types.Context) !void {
@@ -475,6 +388,27 @@ pub fn getFormatOptionsFromExtension(ext: []const u8) img.Image.EncoderOptions {
         // Default to PNG for unsupported extensions
         return .{ .png = .{} };
     }
+}
+
+/// Parse a hex color string into an Rgba32.
+/// Supports "#RRGGBB" and "#RRGGBBAA" (case-insensitive). Returns error.InvalidHexColor on bad input.
+pub fn parseHexColor(hex: []const u8) !img.color.Rgba32 {
+    if (hex.len != 7 and hex.len != 9) {
+        return error.InvalidHexColor;
+    }
+    if (hex[0] != '#') {
+        return error.InvalidHexColor;
+    }
+
+    // Parse RGB components
+    const r = try std.fmt.parseInt(u8, hex[1..3], 16);
+    const g = try std.fmt.parseInt(u8, hex[3..5], 16);
+    const b = try std.fmt.parseInt(u8, hex[5..7], 16);
+
+    // Parse alpha if provided, otherwise default to 255
+    const a = if (hex.len == 9) try std.fmt.parseInt(u8, hex[7..9], 16) else @as(u8, 255);
+
+    return img.color.Rgba32{ .r = r, .g = g, .b = b, .a = a };
 }
 
 /// Generate a sanitized filename from command line arguments for gallery examples

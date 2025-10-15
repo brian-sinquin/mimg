@@ -13,10 +13,12 @@ fn generateGalleryFilename(allocator: std.mem.Allocator, args: []const []const u
             try writer.writeByte('_');
         }
 
-        // Sanitize the argument by replacing dots with underscores
+        // Sanitize the argument by replacing dots with underscores and '#' with '0x'
         for (arg) |char| {
             if (char == '.') {
                 try writer.writeByte('_');
+            } else if (char == '#') {
+                try writer.writeAll("0x");
             } else {
                 try writer.writeByte(char);
             }
@@ -34,24 +36,36 @@ pub fn main() !void {
 
     const cwd = std.fs.cwd();
 
-    // Read template file
-    const template_content = try cwd.readFileAlloc(allocator, "examples/gallery/gallery.html.temp", 10 * 1024);
+    // Read template file using the same allocator we will free with (avoid allocator mismatch)
+    const template_content = try cwd.readFileAlloc(allocator, "examples/gallery/gallery.html.temp", 64 * 1024);
     defer allocator.free(template_content);
 
     // Generate individual modifiers section
-    var individual_modifiers = try std.ArrayList(u8).initCapacity(allocator, 4096);
+    var individual_modifiers = try std.ArrayList(u8).initCapacity(allocator, 8192);
     defer individual_modifiers.deinit(allocator);
-
-    for (gallery_data.individual_modifiers) |modifier| {
-        try writeExampleSection(individual_modifiers.writer(allocator), modifier, allocator);
-    }
-
-    // Generate combinations section
-    var combinations = try std.ArrayList(u8).initCapacity(allocator, 4096);
+    var combinations = try std.ArrayList(u8).initCapacity(allocator, 8192);
     defer combinations.deinit(allocator);
 
+    for (gallery_data.individual_modifiers) |modifier| {
+        const snippet = renderExampleSectionAlloc(modifier, allocator) catch |e| blk: {
+            std.log.err("render example failed: {s}", .{@errorName(e)});
+            break :blk null;
+        };
+        if (snippet) |s| {
+            defer allocator.free(s);
+            try individual_modifiers.appendSlice(allocator, s);
+        }
+    }
+
     for (gallery_data.combinations) |combo| {
-        try writeExampleSection(combinations.writer(allocator), combo, allocator);
+        const snippet = renderExampleSectionAlloc(combo, allocator) catch |e| blk: {
+            std.log.err("render combo failed: {s}", .{@errorName(e)});
+            break :blk null;
+        };
+        if (snippet) |s| {
+            defer allocator.free(s);
+            try combinations.appendSlice(allocator, s);
+        }
     }
 
     // Replace placeholders in template
@@ -70,8 +84,8 @@ pub fn main() !void {
         }
     }
 
-    // Write final gallery.html
-    const file = try cwd.createFile("examples/gallery/gallery.html", .{});
+    // Write final gallery.html (truncate to avoid stale bytes)
+    const file = try cwd.createFile("examples/gallery/gallery.html", .{ .truncate = true });
     defer file.close();
 
     try file.writeAll(output.items);
@@ -80,19 +94,36 @@ pub fn main() !void {
 }
 
 // Helper function to write example section
-fn writeExampleSection(writer: anytype, example: gallery_data.GalleryExample, allocator: std.mem.Allocator) !void {
+fn renderExampleSectionAlloc(example: gallery_data.GalleryExample, allocator: std.mem.Allocator) ![]u8 {
     // Build filename using utility function
     const filename = try generateGalleryFilename(allocator, example.args);
     defer allocator.free(filename);
 
-    try writer.print(
-        \\<div class="image-item">
-        \\    <img src="output/{s}" alt="{s}">
-        \\    <div class="image-info">
-        \\        <div class="image-title">{s}</div>
-        \\        <div class="image-description">{s}</div>
-        \\    </div>
-        \\</div>
-        \\
-    , .{ filename, example.name, example.name, example.description });
+    // Build command string from args
+    var command_str = try std.ArrayList(u8).initCapacity(allocator, 256);
+    defer command_str.deinit(allocator);
+
+    try command_str.appendSlice(allocator, "mimg lena.png ");
+    for (example.args, 0..) |arg, i| {
+        if (i > 0) {
+            try command_str.append(allocator, ' ');
+        }
+        try command_str.appendSlice(allocator, arg);
+    }
+
+    // Allocate exact HTML snippet
+    return try std.fmt.allocPrint(allocator, "<div class=\"image-item\">\n" ++
+        "    <div class=\"command-ribbon\">\n" ++
+        "        <span class=\"command-text\">{s}</span>\n" ++
+        "        <button class=\"copy-button\" onclick=\"copyCommand('{s}', this)\">\n" ++
+        "            <svg class=\"copy-icon\" viewBox=\"0 0 24 24\"><path d=\"M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z\"/></svg>\n" ++
+        "            Copy\n" ++
+        "        </button>\n" ++
+        "    </div>\n" ++
+        "    <img src=\"output/{s}\" alt=\"{s}\">\n" ++
+        "    <div class=\"image-info\">\n" ++
+        "        <div class=\"image-title\">{s}</div>\n" ++
+        "        <div class=\"image-description\">{s}</div>\n" ++
+        "    </div>\n" ++
+        "</div>\n", .{ command_str.items, command_str.items, filename, example.name, example.name, example.description });
 }

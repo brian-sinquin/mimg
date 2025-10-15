@@ -3,6 +3,7 @@ const std = @import("std");
 const Context = @import("../core/types.zig").Context;
 const utils = @import("../core/utils.zig");
 const math = std.math;
+const simd = @import("../utils/simd_utils.zig");
 
 pub fn resizeImage(ctx: *Context, args: anytype) !void {
     const new_width = args[0];
@@ -28,12 +29,16 @@ pub fn resizeImage(ctx: *Context, args: anytype) !void {
     // Initialize all pixels to transparent
     @memset(new_pixels, img.color.Rgba32{ .r = 0, .g = 0, .b = 0, .a = 0 });
 
+    // Pre-calculate scale factors (multiplication is faster than division)
+    const scale_y = @as(f32, @floatFromInt(old_height)) / @as(f32, @floatFromInt(new_height));
+    const scale_x = @as(f32, @floatFromInt(old_width)) / @as(f32, @floatFromInt(new_width));
+
     // Nearest neighbor scaling
     for (0..new_height) |y| {
-        const src_y = @as(usize, @intFromFloat(@as(f32, @floatFromInt(y)) * @as(f32, @floatFromInt(old_height)) / @as(f32, @floatFromInt(new_height))));
+        const src_y = @as(usize, @intFromFloat(@as(f32, @floatFromInt(y)) * scale_y));
         const src_y_clamped = @min(src_y, old_height - 1);
         for (0..new_width) |x| {
-            const src_x = @as(usize, @intFromFloat(@as(f32, @floatFromInt(x)) * @as(f32, @floatFromInt(old_width)) / @as(f32, @floatFromInt(new_width))));
+            const src_x = @as(usize, @intFromFloat(@as(f32, @floatFromInt(x)) * scale_x));
             const src_x_clamped = @min(src_x, old_width - 1);
             const src_idx = src_y_clamped * old_width + src_x_clamped;
             const dst_idx = y * new_width + x;
@@ -262,7 +267,7 @@ pub fn rotate270ClockwiseImage(ctx: *Context, args: anytype) !void {
 pub fn rotateArbitraryImage(ctx: *Context, degrees: f64) !void {
     try utils.convertToRgba32(ctx);
 
-    const radians = degrees * std.math.pi / 180.0;
+    const radians = degrees * @as(f64, utils.DEG_TO_RAD);
     const cos_theta = @cos(radians);
     const sin_theta = @sin(radians);
 
@@ -413,14 +418,150 @@ pub fn rotateImage(ctx: *Context, args: anytype) !void {
     }
 }
 
-pub fn mirrorHorizontalImage(ctx: *Context, args: anytype) !void {
-    _ = args;
-    // Mirror horizontal is the same as flip horizontal
-    try flipHorizontalImage(ctx, .{});
+pub fn flipImage(ctx: *Context, args: anytype) !void {
+    const direction = args[0];
+    if (std.mem.eql(u8, direction, "horizontal")) {
+        try flipHorizontalImage(ctx, .{});
+    } else if (std.mem.eql(u8, direction, "vertical")) {
+        try flipVerticalImage(ctx, .{});
+    } else {
+        return error.InvalidParameters;
+    }
 }
 
-pub fn mirrorVerticalImage(ctx: *Context, args: anytype) !void {
-    _ = args;
-    // Mirror vertical is the same as flip vertical
-    try flipVerticalImage(ctx, .{});
+pub fn roundCornersImage(ctx: *Context, args: anytype) !void {
+    const radius = args[0];
+
+    // Input validation
+    if (radius < 0) {
+        std.log.err("Corner radius must be non-negative, got {d}", .{radius});
+        return error.InvalidRadius;
+    }
+
+    try utils.convertToRgba32(ctx);
+
+    utils.logVerbose(ctx, "Rounding corners with radius {d}", .{radius});
+
+    const pixels = ctx.image.pixels.rgba32;
+    const width = ctx.image.width;
+    const height = ctx.image.height;
+
+    // If radius is 0, do nothing
+    if (radius == 0) return;
+
+    const radius_f = @as(f32, @floatFromInt(radius));
+    const width_f = @as(f32, @floatFromInt(width));
+    const height_f = @as(f32, @floatFromInt(height));
+
+    const pixel_count = pixels.len;
+    var i: usize = 0;
+
+    // Process in chunks of 4 pixels using SIMD
+    while (i + 4 <= pixel_count) : (i += 4) {
+        // Calculate coordinates for 4 pixels
+        const y0 = i / width;
+        const x0 = i % width;
+        const y1 = (i + 1) / width;
+        const x1 = (i + 1) % width;
+        const y2 = (i + 2) / width;
+        const x2 = (i + 2) % width;
+        const y3 = (i + 3) / width;
+        const x3 = (i + 3) % width;
+
+        // Load pixel values
+        const r_vec: simd.Vec4f32 = [_]f32{
+            @as(f32, @floatFromInt(pixels[i].r)),
+            @as(f32, @floatFromInt(pixels[i + 1].r)),
+            @as(f32, @floatFromInt(pixels[i + 2].r)),
+            @as(f32, @floatFromInt(pixels[i + 3].r)),
+        };
+        const g_vec: simd.Vec4f32 = [_]f32{
+            @as(f32, @floatFromInt(pixels[i].g)),
+            @as(f32, @floatFromInt(pixels[i + 1].g)),
+            @as(f32, @floatFromInt(pixels[i + 2].g)),
+            @as(f32, @floatFromInt(pixels[i + 3].g)),
+        };
+        const b_vec: simd.Vec4f32 = [_]f32{
+            @as(f32, @floatFromInt(pixels[i].b)),
+            @as(f32, @floatFromInt(pixels[i + 1].b)),
+            @as(f32, @floatFromInt(pixels[i + 2].b)),
+            @as(f32, @floatFromInt(pixels[i + 3].b)),
+        };
+        const a_vec: simd.Vec4f32 = [_]f32{
+            @as(f32, @floatFromInt(pixels[i].a)),
+            @as(f32, @floatFromInt(pixels[i + 1].a)),
+            @as(f32, @floatFromInt(pixels[i + 2].a)),
+            @as(f32, @floatFromInt(pixels[i + 3].a)),
+        };
+
+        // Calculate coordinates as f32 vectors
+        const x_vec: simd.Vec4f32 = [_]f32{
+            @as(f32, @floatFromInt(x0)),
+            @as(f32, @floatFromInt(x1)),
+            @as(f32, @floatFromInt(x2)),
+            @as(f32, @floatFromInt(x3)),
+        };
+        const y_vec: simd.Vec4f32 = [_]f32{
+            @as(f32, @floatFromInt(y0)),
+            @as(f32, @floatFromInt(y1)),
+            @as(f32, @floatFromInt(y2)),
+            @as(f32, @floatFromInt(y3)),
+        };
+
+        // Apply round corners effect using SIMD with SDF approach
+        const result = simd.applyRoundCornersSIMD4(r_vec, g_vec, b_vec, a_vec, x_vec, y_vec, width_f, height_f, radius_f);
+        const new_a_vec = result[3];
+
+        // Convert back to u8 and store (RGB unchanged, only alpha modified)
+        pixels[i].a = @as(u8, @intFromFloat(math.clamp(new_a_vec[0], 0.0, 255.0)));
+        pixels[i + 1].a = @as(u8, @intFromFloat(math.clamp(new_a_vec[1], 0.0, 255.0)));
+        pixels[i + 2].a = @as(u8, @intFromFloat(math.clamp(new_a_vec[2], 0.0, 255.0)));
+        pixels[i + 3].a = @as(u8, @intFromFloat(math.clamp(new_a_vec[3], 0.0, 255.0)));
+    }
+
+    // Handle remaining pixels with scalar operations using SDF approach
+    while (i < pixel_count) : (i += 1) {
+        const y = i / width;
+        const x = i % width;
+
+        const x_f = @as(f32, @floatFromInt(x));
+        const y_f = @as(f32, @floatFromInt(y));
+
+        // Calculate alpha using signed distance field for perfect anti-aliasing
+        const alpha_mult = calculateRoundedRectSDF(x_f, y_f, width_f, height_f, radius_f);
+
+        // Apply alpha multiplier
+        const current_alpha = @as(f32, @floatFromInt(pixels[i].a)) / 255.0;
+        const new_alpha = current_alpha * alpha_mult;
+        pixels[i].a = @as(u8, @intFromFloat(math.clamp(new_alpha * 255.0, 0.0, 255.0)));
+    }
+}
+
+// Signed Distance Field function for rounded rectangle
+fn calculateRoundedRectSDF(x: f32, y: f32, width: f32, height: f32, radius: f32) f32 {
+    // Convert to center-based coordinates
+    const cx = x - (width - 1.0) * utils.INV_2;
+    const cy = y - (height - 1.0) * utils.INV_2;
+
+    // Half dimensions
+    const half_w = (width - 1.0) * utils.INV_2;
+    const half_h = (height - 1.0) * utils.INV_2;
+
+    // Calculate distance to rounded rectangle using SDF
+    const dx = @max(0.0, @abs(cx) - (half_w - radius));
+    const dy = @max(0.0, @abs(cy) - (half_h - radius));
+    const distance = math.sqrt(dx * dx + dy * dy) - radius;
+
+    // Convert distance to alpha with smooth anti-aliasing
+    const aa_width: f32 = 1.0; // Anti-aliasing width in pixels
+
+    if (distance > aa_width) {
+        return 0.0; // Fully transparent (outside)
+    } else if (distance > 0.0) {
+        // Smooth transition zone using smoothstep
+        const t = 1.0 - (distance / aa_width);
+        return t * t * (3.0 - 2.0 * t);
+    } else {
+        return 1.0; // Fully opaque (inside)
+    }
 }

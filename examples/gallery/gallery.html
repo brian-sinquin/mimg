@@ -26,30 +26,94 @@ body {
 }
 .image-item {
     background: white;
-    border-radius: 8px;
+    border-radius: 0 0 12px 12px;
     overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    transition: transform 0.2s;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    transition: all 0.3s ease;
+    border: 1px solid rgba(0,0,0,0.06);
+    position: relative;
 }
 .image-item:hover {
-    transform: translateY(-2px);
+    transform: translateY(-4px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.12);
 }
 .image-item img {
     width: 100%;
-    height: 200px;
-    object-fit: cover;
+    height: 220px;
+    object-fit: contain;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+.command-ribbon {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(135deg, rgba(0, 123, 204, 0.75) 0%, rgba(0, 86, 179, 0.75) 100%);
+    color: white;
+    padding: 12px 16px;
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Source Code Pro', 'Menlo', 'Consolas', monospace;
+    font-size: 13px;
+    font-weight: 400;
+    letter-spacing: 0.5px;
+    transform: translateY(-100%);
+    transition: transform 0.3s ease;
+    backdrop-filter: blur(15px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.command-text {
+    flex: 1;
+    margin-right: 8px;
+}
+.copy-button {
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+    color: white;
+    padding: 4px 6px;
+    cursor: pointer;
+    font-size: 11px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 60px;
+    justify-content: center;
+}
+.copy-button:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.05);
+}
+.copy-button:active {
+    transform: scale(0.95);
+}
+.copy-icon {
+    width: 12px;
+    height: 12px;
+    fill: currentColor;
+}
+.image-item:hover .command-ribbon {
+    transform: translateY(0);
 }
 .image-info {
-    padding: 15px;
+    padding: 18px;
+    background: white;
 }
 .image-title {
-    font-weight: bold;
-    color: #333;
-    margin-bottom: 5px;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 6px;
+    font-size: 15px;
+    letter-spacing: 0.3px;
 }
 .image-description {
-    color: #666;
-    font-size: 14px;
+    color: #64748b;
+    font-size: 13px;
+    line-height: 1.4;
 }
 .original-image {
     text-align: center;
@@ -69,6 +133,27 @@ body {
 }
 </style>
 
+<script>
+function copyCommand(text, button) {
+    navigator.clipboard.writeText(text).then(function() {
+        const originalText = button.innerHTML;
+        button.innerHTML = '<svg class="copy-icon" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>Copied';
+        button.style.background = 'rgba(76, 175, 80, 0.8)';
+        
+        setTimeout(function() {
+            button.innerHTML = originalText;
+            button.style.background = 'rgba(255, 255, 255, 0.2)';
+        }, 1500);
+    }).catch(function(err) {
+        console.error('Failed to copy: ', err);
+        button.innerHTML = '<svg class="copy-icon" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>Error';
+        setTimeout(function() {
+            button.innerHTML = '<svg class="copy-icon" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>Copy';
+        }, 1500);
+    });
+}
+</script>
+
 <div class="header">
     <h1>🎨 MIMG Gallery</h1>
     <p>Visual showcase of all available image processing modifiers.</p>
@@ -84,13 +169,27 @@ body {
     <h2>Individual Modifiers</h2>
     <div class="image-grid">
 <div class="image-item">
+    <div class="command-ribbon">
+        <span class="command-text">mimg lena.png invert</span>
+        <button class="copy-button" onclick="copyCommand('mimg lena.png invert', this)">
+            <svg class="copy-icon" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            Copy
+        </button>
+    </div>
     <img src="output/invert_lena.png" alt="Invert">
     <div class="image-info">
         <div class="image-title">Invert</div>
-        <div class="image-description">Invert all colors</div>
+        <div class="image-description">Invert all colors for negative effect</div>
     </div>
 </div>
 <div class="image-item">
+    <div class="command-ribbon">
+        <span class="command-text">mimg lena.png grayscale</span>
+        <button class="copy-button" onclick="copyCommand('mimg lena.png grayscale', this)">
+            <svg class="copy-icon" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            Copy
+        </button>
+    </div>
     <img src="output/grayscale_lena.png" alt="Grayscale">
     <div class="image-info">
         <div class="image-title">Grayscale</div>
@@ -98,241 +197,353 @@ body {
     </div>
 </div>
 <div class="image-item">
-    <img src="output/brightness_50_lena.png" alt="Brightness +50">
+    <div class="command-ribbon">
+        <span class="command-text">mimg lena.png sepia</span>
+        <button class="copy-button" onclick="copyCommand('mimg lena.png sepia', this)">
+            <svg class="copy-icon" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            Copy
+        </button>
+    </div>
+    <img src="output/sepia_lena.png" alt="Sepia">
     <div class="image-info">
-        <div class="image-title">Brightness +50</div>
+        <div class="image-title">Sepia</div>
+        <div class="image-description">Classic sepia tone effect</div>
+    </div>
+</div>
+<div class="image-item">
+    <div class="command-ribbon">
+        <span class="command-text">mimg lena.png brightness 40</span>
+        <button class="copy-button" onclick="copyCommand('mimg lena.png brightness 40', this)">
+            <svg class="copy-icon" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            Copy
+        </button>
+    </div>
+    <img src="output/brightness_40_lena.png" alt="Bright +40">
+    <div class="image-info">
+        <div class="image-title">Bright +40</div>
         <div class="image-description">Increase brightness</div>
     </div>
 </div>
 <div class="image-item">
-    <img src="output/brightness_-30_lena.png" alt="Brightness -30">
+    <div class="command-ribbon">
+        <span class="command-text">mimg lena.png contrast 1.8</span>
+        <button class="copy-button" onclick="copyCommand('mimg lena.png contrast 1.8', this)">
+            <svg class="copy-icon" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            Copy
+        </button>
+    </div>
+    <img src="output/contrast_1_8_lena.png" alt="High Contrast">
     <div class="image-info">
-        <div class="image-title">Brightness -30</div>
-        <div class="image-description">Decrease brightness</div>
+        <div class="image-title">High Contrast</div>
+        <div class="image-description">Boost contrast for dramatic effect</div>
     </div>
 </div>
 <div class="image-item">
-    <img src="output/contrast_1_5_lena.png" alt="Contrast 1.5">
+    <div class="command-ribbon">
+        <span class="command-text">mimg lena.png saturation 1.6</span>
+        <button class="copy-button" onclick="copyCommand('mimg lena.png saturation 1.6', this)">
+            <svg class="copy-icon" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            Copy
+        </button>
+    </div>
+    <img src="output/saturation_1_6_lena.png" alt="Vibrant Colors">
     <div class="image-info">
-        <div class="image-title">Contrast 1.5</div>
-        <div class="image-description">Increase contrast</div>
+        <div class="image-title">Vibrant Colors</div>
+        <div class="image-description">Boost saturation for vibrant colors</div>
     </div>
 </div>
 <div class="image-item">
-    <img src="output/contrast_0_7_lena.png" alt="Contrast 0.7">
+    <div class="command-ribbon">
+        <span class="command-text">mimg lena.png gamma 1.8</span>
+        <button class="copy-button" onclick="copyCommand('mimg lena.png gamma 1.8', this)">
+            <svg class="copy-icon" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            Copy
+        </button>
+    </div>
+    <img src="output/gamma_1_8_lena.png" alt="Gamma Correct">
     <div class="image-info">
-        <div class="image-title">Contrast 0.7</div>
-        <div class="image-description">Decrease contrast</div>
+        <div class="image-title">Gamma Correct</div>
+        <div class="image-description">Apply gamma correction</div>
     </div>
 </div>
 <div class="image-item">
-    <img src="output/saturation_1_5_lena.png" alt="Saturation 1.5">
-    <div class="image-info">
-        <div class="image-title">Saturation 1.5</div>
-        <div class="image-description">Increase saturation</div>
+    <div class="command-ribbon">
+        <span class="command-text">mimg lena.png gaussian-blur 3.0</span>
+        <button class="copy-button" onclick="copyCommand('mimg lena.png gaussian-blur 3.0', this)">
+            <svg class="copy-icon" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            Copy
+        </button>
     </div>
-</div>
-<div class="image-item">
-    <img src="output/saturation_0_5_lena.png" alt="Saturation 0.5">
-    <div class="image-info">
-        <div class="image-title">Saturation 0.5</div>
-        <div class="image-description">Decrease saturation</div>
-    </div>
-</div>
-<div class="image-item">
-    <img src="output/gamma_2_2_lena.png" alt="Gamma 2.2">
-    <div class="image-info">
-        <div class="image-title">Gamma 2.2</div>
-        <div class="image-description">Apply gamma correction (brighter)</div>
-    </div>
-</div>
-<div class="image-item">
-    <img src="output/gamma_0_45_lena.png" alt="Gamma 0.45">
-    <div class="image-info">
-        <div class="image-title">Gamma 0.45</div>
-        <div class="image-description">Apply gamma correction (darker)</div>
-    </div>
-</div>
-<div class="image-item">
-    <img src="output/sepia_lena.png" alt="Sepia">
-    <div class="image-info">
-        <div class="image-title">Sepia</div>
-        <div class="image-description">Apply sepia tone effect</div>
-    </div>
-</div>
-<div class="image-item">
-    <img src="output/blur_3_lena.png" alt="Blur">
-    <div class="image-info">
-        <div class="image-title">Blur</div>
-        <div class="image-description">Apply box blur with kernel size 3</div>
-    </div>
-</div>
-<div class="image-item">
-    <img src="output/sharpen_lena.png" alt="Sharpen">
-    <div class="image-info">
-        <div class="image-title">Sharpen</div>
-        <div class="image-description">Sharpen the image</div>
-    </div>
-</div>
-<div class="image-item">
-    <img src="output/gaussian-blur_2_0_lena.png" alt="Gaussian Blur">
+    <img src="output/gaussian-blur_3_0_lena.png" alt="Gaussian Blur">
     <div class="image-info">
         <div class="image-title">Gaussian Blur</div>
-        <div class="image-description">Apply Gaussian blur with sigma 2.0</div>
+        <div class="image-description">Soft gaussian blur effect</div>
     </div>
 </div>
 <div class="image-item">
-    <img src="output/emboss_lena.png" alt="Emboss">
+    <div class="command-ribbon">
+        <span class="command-text">mimg lena.png sharpen</span>
+        <button class="copy-button" onclick="copyCommand('mimg lena.png sharpen', this)">
+            <svg class="copy-icon" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            Copy
+        </button>
+    </div>
+    <img src="output/sharpen_lena.png" alt="Sharp Focus">
     <div class="image-info">
-        <div class="image-title">Emboss</div>
-        <div class="image-description">Apply emboss effect</div>
+        <div class="image-title">Sharp Focus</div>
+        <div class="image-description">Sharpen image details</div>
     </div>
 </div>
 <div class="image-item">
-    <img src="output/vignette_0_5_lena.png" alt="Vignette">
+    <div class="command-ribbon">
+        <span class="command-text">mimg lena.png emboss 1.5</span>
+        <button class="copy-button" onclick="copyCommand('mimg lena.png emboss 1.5', this)">
+            <svg class="copy-icon" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            Copy
+        </button>
+    </div>
+    <img src="output/emboss_1_5_lena.png" alt="Emboss 3D">
+    <div class="image-info">
+        <div class="image-title">Emboss 3D</div>
+        <div class="image-description">3D emboss effect</div>
+    </div>
+</div>
+<div class="image-item">
+    <div class="command-ribbon">
+        <span class="command-text">mimg lena.png color-emboss 1.2</span>
+        <button class="copy-button" onclick="copyCommand('mimg lena.png color-emboss 1.2', this)">
+            <svg class="copy-icon" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            Copy
+        </button>
+    </div>
+    <img src="output/color-emboss_1_2_lena.png" alt="Color Emboss">
+    <div class="image-info">
+        <div class="image-title">Color Emboss</div>
+        <div class="image-description">Emboss with color preservation</div>
+    </div>
+</div>
+<div class="image-item">
+    <div class="command-ribbon">
+        <span class="command-text">mimg lena.png glow 0.7 12</span>
+        <button class="copy-button" onclick="copyCommand('mimg lena.png glow 0.7 12', this)">
+            <svg class="copy-icon" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            Copy
+        </button>
+    </div>
+    <img src="output/glow_0_7_12_lena.png" alt="Soft Glow">
+    <div class="image-info">
+        <div class="image-title">Soft Glow</div>
+        <div class="image-description">Add ethereal glow effect</div>
+    </div>
+</div>
+<div class="image-item">
+    <div class="command-ribbon">
+        <span class="command-text">mimg lena.png vignette 0.6</span>
+        <button class="copy-button" onclick="copyCommand('mimg lena.png vignette 0.6', this)">
+            <svg class="copy-icon" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            Copy
+        </button>
+    </div>
+    <img src="output/vignette_0_6_lena.png" alt="Vignette">
     <div class="image-info">
         <div class="image-title">Vignette</div>
-        <div class="image-description">Apply vignette effect</div>
+        <div class="image-description">Dark corners vignette</div>
     </div>
 </div>
 <div class="image-item">
-    <img src="output/posterize_8_lena.png" alt="Posterize">
+    <div class="command-ribbon">
+        <span class="command-text">mimg lena.png posterize 6</span>
+        <button class="copy-button" onclick="copyCommand('mimg lena.png posterize 6', this)">
+            <svg class="copy-icon" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            Copy
+        </button>
+    </div>
+    <img src="output/posterize_6_lena.png" alt="Posterize">
     <div class="image-info">
         <div class="image-title">Posterize</div>
-        <div class="image-description">Reduce to 8 color levels</div>
+        <div class="image-description">Reduce to 6 color levels</div>
     </div>
 </div>
 <div class="image-item">
-    <img src="output/hue-shift_15_lena.png" alt="Hue Shift">
+    <div class="command-ribbon">
+        <span class="command-text">mimg lena.png hue-shift 90</span>
+        <button class="copy-button" onclick="copyCommand('mimg lena.png hue-shift 90', this)">
+            <svg class="copy-icon" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            Copy
+        </button>
+    </div>
+    <img src="output/hue-shift_90_lena.png" alt="Hue Shift">
     <div class="image-info">
         <div class="image-title">Hue Shift</div>
-        <div class="image-description">Shift hue by 15 degrees</div>
+        <div class="image-description">Shift colors by 90 degrees</div>
     </div>
 </div>
 <div class="image-item">
-    <img src="output/median-filter_3_lena.png" alt="Median Filter">
+    <div class="command-ribbon">
+        <span class="command-text">mimg lena.png edge-detect</span>
+        <button class="copy-button" onclick="copyCommand('mimg lena.png edge-detect', this)">
+            <svg class="copy-icon" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            Copy
+        </button>
+    </div>
+    <img src="output/edge-detect_lena.png" alt="Edge Detection">
     <div class="image-info">
-        <div class="image-title">Median Filter</div>
-        <div class="image-description">Apply 3x3 median filter</div>
+        <div class="image-title">Edge Detection</div>
+        <div class="image-description">Detect image edges</div>
     </div>
 </div>
 <div class="image-item">
-    <img src="output/threshold_128_lena.png" alt="Threshold">
-    <div class="image-info">
-        <div class="image-title">Threshold</div>
-        <div class="image-description">Convert to pure black and white</div>
+    <div class="command-ribbon">
+        <span class="command-text">mimg lena.png pixelate 8</span>
+        <button class="copy-button" onclick="copyCommand('mimg lena.png pixelate 8', this)">
+            <svg class="copy-icon" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            Copy
+        </button>
     </div>
-</div>
-<div class="image-item">
-    <img src="output/solarize_128_lena.png" alt="Solarize">
-    <div class="image-info">
-        <div class="image-title">Solarize</div>
-        <div class="image-description">Solarize effect with threshold</div>
-    </div>
-</div>
-<div class="image-item">
-    <img src="output/edge-detect_lena.png" alt="Edge Detect">
-    <div class="image-info">
-        <div class="image-title">Edge Detect</div>
-        <div class="image-description">Detect edges using Sobel operator</div>
-    </div>
-</div>
-<div class="image-item">
-    <img src="output/pixelate_10_lena.png" alt="Pixelate">
+    <img src="output/pixelate_8_lena.png" alt="Pixelate">
     <div class="image-info">
         <div class="image-title">Pixelate</div>
-        <div class="image-description">Apply pixelation effect</div>
+        <div class="image-description">8-bit pixel effect</div>
     </div>
 </div>
 <div class="image-item">
-    <img src="output/noise_0_1_lena.png" alt="Noise">
+    <div class="command-ribbon">
+        <span class="command-text">mimg lena.png noise 0.15</span>
+        <button class="copy-button" onclick="copyCommand('mimg lena.png noise 0.15', this)">
+            <svg class="copy-icon" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            Copy
+        </button>
+    </div>
+    <img src="output/noise_0_15_lena.png" alt="Film Noise">
     <div class="image-info">
-        <div class="image-title">Noise</div>
-        <div class="image-description">Add random noise to image</div>
+        <div class="image-title">Film Noise</div>
+        <div class="image-description">Add vintage film grain</div>
     </div>
 </div>
 <div class="image-item">
-    <img src="output/exposure_1_0_lena.png" alt="Exposure +1">
+    <div class="command-ribbon">
+        <span class="command-text">mimg lena.png exposure 1.2</span>
+        <button class="copy-button" onclick="copyCommand('mimg lena.png exposure 1.2', this)">
+            <svg class="copy-icon" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            Copy
+        </button>
+    </div>
+    <img src="output/exposure_1_2_lena.png" alt="High Exposure">
     <div class="image-info">
-        <div class="image-title">Exposure +1</div>
-        <div class="image-description">Increase exposure by 1 EV</div>
+        <div class="image-title">High Exposure</div>
+        <div class="image-description">Overexposed bright effect</div>
     </div>
 </div>
 <div class="image-item">
-    <img src="output/exposure_-1_0_lena.png" alt="Exposure -1">
-    <div class="image-info">
-        <div class="image-title">Exposure -1</div>
-        <div class="image-description">Decrease exposure by 1 EV</div>
+    <div class="command-ribbon">
+        <span class="command-text">mimg lena.png vibrance 0.6</span>
+        <button class="copy-button" onclick="copyCommand('mimg lena.png vibrance 0.6', this)">
+            <svg class="copy-icon" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            Copy
+        </button>
     </div>
-</div>
-<div class="image-item">
-    <img src="output/vibrance_0_5_lena.png" alt="Vibrance">
+    <img src="output/vibrance_0_6_lena.png" alt="Vibrance">
     <div class="image-info">
         <div class="image-title">Vibrance</div>
-        <div class="image-description">Boost vibrance (smart saturation)</div>
+        <div class="image-description">Smart saturation boost</div>
     </div>
 </div>
 <div class="image-item">
+    <div class="command-ribbon">
+        <span class="command-text">mimg lena.png equalize</span>
+        <button class="copy-button" onclick="copyCommand('mimg lena.png equalize', this)">
+            <svg class="copy-icon" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            Copy
+        </button>
+    </div>
     <img src="output/equalize_lena.png" alt="Equalize">
     <div class="image-info">
         <div class="image-title">Equalize</div>
-        <div class="image-description">Histogram equalization for contrast</div>
+        <div class="image-description">Histogram equalization</div>
     </div>
 </div>
 <div class="image-item">
-    <img src="output/colorize_50_100_200_0_6_lena.png" alt="Colorize Blue">
+    <div class="command-ribbon">
+        <span class="command-text">mimg lena.png colorize #6496FF 0.4</span>
+        <button class="copy-button" onclick="copyCommand('mimg lena.png colorize #6496FF 0.4', this)">
+            <svg class="copy-icon" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            Copy
+        </button>
+    </div>
+    <img src="output/colorize_0x6496FF_0_4_lena.png" alt="Blue Tint">
     <div class="image-info">
-        <div class="image-title">Colorize Blue</div>
-        <div class="image-description">Tint with blue color</div>
+        <div class="image-title">Blue Tint</div>
+        <div class="image-description">Cool blue colorization</div>
     </div>
 </div>
 <div class="image-item">
-    <img src="output/duotone_75_30_120_255_220_100_lena.png" alt="Duotone">
-    <div class="image-info">
-        <div class="image-title">Duotone</div>
-        <div class="image-description">Purple to yellow duotone effect</div>
+    <div class="command-ribbon">
+        <span class="command-text">mimg lena.png oil-painting 3</span>
+        <button class="copy-button" onclick="copyCommand('mimg lena.png oil-painting 3', this)">
+            <svg class="copy-icon" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            Copy
+        </button>
     </div>
-</div>
-<div class="image-item">
     <img src="output/oil-painting_3_lena.png" alt="Oil Painting">
     <div class="image-info">
         <div class="image-title">Oil Painting</div>
-        <div class="image-description">Artistic oil painting effect</div>
+        <div class="image-description">Artistic oil paint effect</div>
     </div>
 </div>
 <div class="image-item">
+    <div class="command-ribbon">
+        <span class="command-text">mimg lena.png tilt-shift 5.0 0.5 0.08</span>
+        <button class="copy-button" onclick="copyCommand('mimg lena.png tilt-shift 5.0 0.5 0.08', this)">
+            <svg class="copy-icon" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            Copy
+        </button>
+    </div>
+    <img src="output/tilt-shift_5_0_0_5_0_08_lena.png" alt="Tilt Shift">
+    <div class="image-info">
+        <div class="image-title">Tilt Shift</div>
+        <div class="image-description">Advanced miniature depth of field effect</div>
+    </div>
+</div>
+<div class="image-item">
+    <div class="command-ribbon">
+        <span class="command-text">mimg lena.png round-corners 25</span>
+        <button class="copy-button" onclick="copyCommand('mimg lena.png round-corners 25', this)">
+            <svg class="copy-icon" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            Copy
+        </button>
+    </div>
+    <img src="output/round-corners_25_lena.png" alt="Round Corners">
+    <div class="image-info">
+        <div class="image-title">Round Corners</div>
+        <div class="image-description">Smooth rounded corners</div>
+    </div>
+</div>
+<div class="image-item">
+    <div class="command-ribbon">
+        <span class="command-text">mimg lena.png rotate 30</span>
+        <button class="copy-button" onclick="copyCommand('mimg lena.png rotate 30', this)">
+            <svg class="copy-icon" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            Copy
+        </button>
+    </div>
+    <img src="output/rotate_30_lena.png" alt="Rotate 30°">
+    <div class="image-info">
+        <div class="image-title">Rotate 30°</div>
+        <div class="image-description">Rotate 30 degrees</div>
+    </div>
+</div>
+<div class="image-item">
+    <div class="command-ribbon">
+        <span class="command-text">mimg lena.png flip horizontal</span>
+        <button class="copy-button" onclick="copyCommand('mimg lena.png flip horizontal', this)">
+            <svg class="copy-icon" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            Copy
+        </button>
+    </div>
     <img src="output/flip_horizontal_lena.png" alt="Flip Horizontal">
     <div class="image-info">
         <div class="image-title">Flip Horizontal</div>
         <div class="image-description">Mirror horizontally</div>
-    </div>
-</div>
-<div class="image-item">
-    <img src="output/flip_vertical_lena.png" alt="Flip Vertical">
-    <div class="image-info">
-        <div class="image-title">Flip Vertical</div>
-        <div class="image-description">Mirror vertically</div>
-    </div>
-</div>
-<div class="image-item">
-    <img src="output/rotate_45_lena.png" alt="Rotate 45°">
-    <div class="image-info">
-        <div class="image-title">Rotate 45°</div>
-        <div class="image-description">Rotate 45 degrees clockwise</div>
-    </div>
-</div>
-<div class="image-item">
-    <img src="output/resize_200_200_lena.png" alt="Resize">
-    <div class="image-info">
-        <div class="image-title">Resize</div>
-        <div class="image-description">Resize to 200x200</div>
-    </div>
-</div>
-<div class="image-item">
-    <img src="output/crop_25_25_200_200_lena.png" alt="Crop">
-    <div class="image-info">
-        <div class="image-title">Crop</div>
-        <div class="image-description">Crop to center 200x200</div>
     </div>
 </div>
     </div>
@@ -342,101 +553,157 @@ body {
     <h2>Creative Combinations</h2>
     <div class="image-grid">
 <div class="image-item">
-    <img src="output/flip_horizontal_brightness_20_lena.png" alt="Data Augmentation">
-    <div class="image-info">
-        <div class="image-title">Data Augmentation</div>
-        <div class="image-description">Flip + brightness variation for ML training data</div>
+    <div class="command-ribbon">
+        <span class="command-text">mimg lena.png sepia contrast 1.1 vignette 0.45</span>
+        <button class="copy-button" onclick="copyCommand('mimg lena.png sepia contrast 1.1 vignette 0.45', this)">
+            <svg class="copy-icon" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            Copy
+        </button>
     </div>
-</div>
-<div class="image-item">
-    <img src="output/rotate_15_crop_50_50_200_200_lena.png" alt="Geometric Augmentation">
-    <div class="image-info">
-        <div class="image-title">Geometric Augmentation</div>
-        <div class="image-description">Rotation + crop for dataset variety</div>
-    </div>
-</div>
-<div class="image-item">
-    <img src="output/sepia_vignette_0_4_lena.png" alt="Vintage Portrait">
+    <img src="output/sepia_contrast_1_1_vignette_0_45_lena.png" alt="Vintage Portrait">
     <div class="image-info">
         <div class="image-title">Vintage Portrait</div>
-        <div class="image-description">Sepia tone with vignette for classic look</div>
+        <div class="image-description">Sepia tone with a gentle vignette for a classic look</div>
     </div>
 </div>
 <div class="image-item">
-    <img src="output/brightness_15_saturation_1_2_lena.png" alt="Color Grading">
+    <div class="command-ribbon">
+        <span class="command-text">mimg lena.png gaussian-blur 2.0 posterize 5 edge-enhancement 0.3 saturation 1.6 contrast 0.5</span>
+        <button class="copy-button" onclick="copyCommand('mimg lena.png gaussian-blur 2.0 posterize 5 edge-enhancement 0.3 saturation 1.6 contrast 0.5', this)">
+            <svg class="copy-icon" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            Copy
+        </button>
+    </div>
+    <img src="output/gaussian-blur_2_0_posterize_5_edge-enhancement_0_3_saturation_1_6_contrast_0_5_lena.png" alt="Pop Art">
     <div class="image-info">
-        <div class="image-title">Color Grading</div>
-        <div class="image-description">Brightness + saturation for natural enhancement</div>
+        <div class="image-title">Pop Art</div>
+        <div class="image-description">Bold posterization with punchy color and contrast</div>
     </div>
 </div>
 <div class="image-item">
-    <img src="output/contrast_1_2_sharpen_lena.png" alt="Detail Enhancement">
+    <div class="command-ribbon">
+        <span class="command-text">mimg lena.png colorize #00A8FF 0.55 glow 0.8 12 edge-enhancement 1.35 contrast 1.15 vignette 0.15</span>
+        <button class="copy-button" onclick="copyCommand('mimg lena.png colorize #00A8FF 0.55 glow 0.8 12 edge-enhancement 1.35 contrast 1.15 vignette 0.15', this)">
+            <svg class="copy-icon" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            Copy
+        </button>
+    </div>
+    <img src="output/colorize_0x00A8FF_0_55_glow_0_8_12_edge-enhancement_1_35_contrast_1_15_vignette_0_15_lena.png" alt="Cyberpunk">
     <div class="image-info">
-        <div class="image-title">Detail Enhancement</div>
-        <div class="image-description">Contrast boost + sharpening for crisp images</div>
+        <div class="image-title">Cyberpunk</div>
+        <div class="image-description">Cool neon tint, soft glow, and crisp edges</div>
     </div>
 </div>
 <div class="image-item">
-    <img src="output/gaussian-blur_1_0_median-filter_3_lena.png" alt="Noise Reduction">
-    <div class="image-info">
-        <div class="image-title">Noise Reduction</div>
-        <div class="image-description">Gaussian blur + median filter pipeline</div>
+    <div class="command-ribbon">
+        <span class="command-text">mimg lena.png oil-painting 3 glow 0.35 12 exposure 0.15 saturation 1.1 vignette 0.25</span>
+        <button class="copy-button" onclick="copyCommand('mimg lena.png oil-painting 3 glow 0.35 12 exposure 0.15 saturation 1.1 vignette 0.25', this)">
+            <svg class="copy-icon" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            Copy
+        </button>
     </div>
-</div>
-<div class="image-item">
-    <img src="output/posterize_12_emboss_lena.png" alt="Graphic Art">
-    <div class="image-info">
-        <div class="image-title">Graphic Art</div>
-        <div class="image-description">Posterize + emboss for artistic rendering</div>
-    </div>
-</div>
-<div class="image-item">
-    <img src="output/gamma_2_2_contrast_1_1_lena.png" alt="Monitor Calibration">
-    <div class="image-info">
-        <div class="image-title">Monitor Calibration</div>
-        <div class="image-description">Gamma correction + contrast adjustment</div>
-    </div>
-</div>
-<div class="image-item">
-    <img src="output/edge-detect_posterize_6_lena.png" alt="Stylized Edges">
-    <div class="image-info">
-        <div class="image-title">Stylized Edges</div>
-        <div class="image-description">Edge detection + posterize for graphic novel style</div>
-    </div>
-</div>
-<div class="image-item">
-    <img src="output/pixelate_8_posterize_16_lena.png" alt="Retro Game">
-    <div class="image-info">
-        <div class="image-title">Retro Game</div>
-        <div class="image-description">Pixelate + posterize for retro gaming aesthetic</div>
-    </div>
-</div>
-<div class="image-item">
-    <img src="output/solarize_180_noise_0_05_lena.png" alt="Film Grain">
-    <div class="image-info">
-        <div class="image-title">Film Grain</div>
-        <div class="image-description">Solarize + noise for vintage film look</div>
-    </div>
-</div>
-<div class="image-item">
-    <img src="output/equalize_vibrance_0_3_lena.png" alt="HDR Look">
-    <div class="image-info">
-        <div class="image-title">HDR Look</div>
-        <div class="image-description">Equalize + vibrance for HDR-style enhancement</div>
-    </div>
-</div>
-<div class="image-item">
-    <img src="output/oil-painting_2_vibrance_0_4_lena.png" alt="Dreamy Portrait">
+    <img src="output/oil-painting_3_glow_0_35_12_exposure_0_15_saturation_1_1_vignette_0_25_lena.png" alt="Dreamy Portrait">
     <div class="image-info">
         <div class="image-title">Dreamy Portrait</div>
-        <div class="image-description">Oil painting + vibrance for soft romantic look</div>
+        <div class="image-description">Soft painterly look with a gentle bloom</div>
     </div>
 </div>
 <div class="image-item">
-    <img src="output/duotone_20_40_80_255_200_150_exposure_0_2_lena.png" alt="Cinematic Grade">
+    <div class="command-ribbon">
+        <span class="command-text">mimg lena.png grayscale contrast 1.9 sharpen vignette 0.65 noise 0.06</span>
+        <button class="copy-button" onclick="copyCommand('mimg lena.png grayscale contrast 1.9 sharpen vignette 0.65 noise 0.06', this)">
+            <svg class="copy-icon" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            Copy
+        </button>
+    </div>
+    <img src="output/grayscale_contrast_1_9_sharpen_vignette_0_65_noise_0_06_lena.png" alt="Film Noir">
     <div class="image-info">
-        <div class="image-title">Cinematic Grade</div>
-        <div class="image-description">Duotone + exposure for film-like color</div>
+        <div class="image-title">Film Noir</div>
+        <div class="image-description">Moody black and white with contrast and vignette</div>
+    </div>
+</div>
+<div class="image-item">
+    <div class="command-ribbon">
+        <span class="command-text">mimg lena.png edge-detect invert posterize 3 contrast 1.2</span>
+        <button class="copy-button" onclick="copyCommand('mimg lena.png edge-detect invert posterize 3 contrast 1.2', this)">
+            <svg class="copy-icon" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            Copy
+        </button>
+    </div>
+    <img src="output/edge-detect_invert_posterize_3_contrast_1_2_lena.png" alt="Artistic Sketch">
+    <div class="image-info">
+        <div class="image-title">Artistic Sketch</div>
+        <div class="image-description">Edge outlines with minimal palette</div>
+    </div>
+</div>
+<div class="image-item">
+    <div class="command-ribbon">
+        <span class="command-text">mimg lena.png edge-enhancement 1.3 glow 0.55 12 saturation 1.2 vignette 0.10</span>
+        <button class="copy-button" onclick="copyCommand('mimg lena.png edge-enhancement 1.3 glow 0.55 12 saturation 1.2 vignette 0.10', this)">
+            <svg class="copy-icon" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            Copy
+        </button>
+    </div>
+    <img src="output/edge-enhancement_1_3_glow_0_55_12_saturation_1_2_vignette_0_10_lena.png" alt="Neon Glow">
+    <div class="image-info">
+        <div class="image-title">Neon Glow</div>
+        <div class="image-description">Bright edges with colorful radiance</div>
+    </div>
+</div>
+<div class="image-item">
+    <div class="command-ribbon">
+        <span class="command-text">mimg lena.png duotone #FFD700 #FF69B4 glow 0.5 10 vibrance 0.8 contrast 1.2</span>
+        <button class="copy-button" onclick="copyCommand('mimg lena.png duotone #FFD700 #FF69B4 glow 0.5 10 vibrance 0.8 contrast 1.2', this)">
+            <svg class="copy-icon" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            Copy
+        </button>
+    </div>
+    <img src="output/duotone_0xFFD700_0xFF69B4_glow_0_5_10_vibrance_0_8_contrast_1_2_lena.png" alt="Solar Dream">
+    <div class="image-info">
+        <div class="image-title">Solar Dream</div>
+        <div class="image-description">Radiant duotone with soft glow and high vibrance</div>
+    </div>
+</div>
+<div class="image-item">
+    <div class="command-ribbon">
+        <span class="command-text">mimg lena.png posterize 7 saturation 0.7 noise 0.12 vignette 0.35 contrast 0.8</span>
+        <button class="copy-button" onclick="copyCommand('mimg lena.png posterize 7 saturation 0.7 noise 0.12 vignette 0.35 contrast 0.8', this)">
+            <svg class="copy-icon" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            Copy
+        </button>
+    </div>
+    <img src="output/posterize_7_saturation_0_7_noise_0_12_vignette_0_35_contrast_0_8_lena.png" alt="Retro Fade">
+    <div class="image-info">
+        <div class="image-title">Retro Fade</div>
+        <div class="image-description">Muted colors, film grain, and faded vignette for a vintage look</div>
+    </div>
+</div>
+<div class="image-item">
+    <div class="command-ribbon">
+        <span class="command-text">mimg lena.png colorize #AEEFFF 0.4 gaussian-blur 2.5 edge-enhancement 1.1 contrast 1.05</span>
+        <button class="copy-button" onclick="copyCommand('mimg lena.png colorize #AEEFFF 0.4 gaussian-blur 2.5 edge-enhancement 1.1 contrast 1.05', this)">
+            <svg class="copy-icon" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            Copy
+        </button>
+    </div>
+    <img src="output/colorize_0xAEEFFF_0_4_gaussian-blur_2_5_edge-enhancement_1_1_contrast_1_05_lena.png" alt="Arctic Mist">
+    <div class="image-info">
+        <div class="image-title">Arctic Mist</div>
+        <div class="image-description">Cool blue tint, gaussian blur, and crisp edges for frosty effect</div>
+    </div>
+</div>
+<div class="image-item">
+    <div class="command-ribbon">
+        <span class="command-text">mimg lena.png saturation 1.7 tilt-shift 6.5 0.5 0.07 contrast 1.3 vignette 0.22</span>
+        <button class="copy-button" onclick="copyCommand('mimg lena.png saturation 1.7 tilt-shift 6.5 0.5 0.07 contrast 1.3 vignette 0.22', this)">
+            <svg class="copy-icon" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            Copy
+        </button>
+    </div>
+    <img src="output/saturation_1_7_tilt-shift_6_5_0_5_0_07_contrast_1_3_vignette_0_22_lena.png" alt="Nightlife">
+    <div class="image-info">
+        <div class="image-title">Nightlife</div>
+        <div class="image-description">Vivid colors, tilt-shift, and high contrast for a dramatic city vibe</div>
     </div>
 </div>
     </div>

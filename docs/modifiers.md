@@ -1,166 +1,101 @@
-# Available Modifiers
+# Available Modifiers (42 Total)
 
-mimg provides 30+ image processing modifiers organized into categories. Each modifier can be chained together for complex processing pipelines.
+## Options
 
-## Global Options
+| Option | Description |
+|--------|-------------|
+| `-o <file>` | Output filename |
+| `-d <dir>` | Output directory |
+| `-v` | Verbose output |
+| `--preset <file>` | Load modifier chain from preset file |
+| `--help` | Show help message |
 
-| Option | Shorthand | Description |
-|--------|-----------|-------------|
-| `--output <file>` | `-o` | Output filename |
-| `--output-dir <dir>` | `-d` | Output directory (auto-created) |
-| `--output-extension <ext>` | - | Output file extension (e.g., .png, .jpg, .tga) |
-| `--preset <file>` | `-p` | Load modifier chain from preset file |
-| `--list-modifiers` | `-L` | List all modifiers and exit |
-| `--verbose` | `-v` | Enable verbose logging |
-| `--help` | `-h` | Show help message |
+## Color Adjustments (21 modifiers)
 
-## Color Adjustments
+| Modifier | Usage | Description |
+|----------|-------|-------------|
+| `brightness` | `brightness <value>` | Adjust brightness (-128 to 127) |
+| `contrast` | `contrast <factor>` | Adjust contrast |
+| `saturation` | `saturation <factor>` | Adjust color saturation |
+| `gamma` | `gamma <value>` | Apply gamma correction |
+| `vibrance` | `vibrance <factor>` | Adjust vibrance (smart saturation) |
+| `exposure` | `exposure <value>` | Adjust exposure (-2.0 to 2.0) |
+| `hue-shift` | `hue-shift <degrees>` | Shift hue (-180 to 180) |
+| `adjust-hsl` | `adjust-hsl <hue> <sat> <light>` | Adjust hue, saturation, and lightness separately |
+| `adjust-channels` | `adjust-channels <red> <green> <blue>` | Adjust RGB channel intensities |
+| `colorize` | `colorize <#RRGGBB> <intensity>` | Tint image with hex color |
+| `duotone` | `duotone <#dark> <#light>` | Apply duotone effect (Spotify-style) using hex colors |
+| `posterize` | `posterize <levels>` | Reduce color levels (2-256) |
+| `threshold` | `threshold <value>` | Convert to black/white based on luminance (0-255) |
+| `solarize` | `solarize <threshold>` | Invert colors above threshold (0-255) |
+| `equalize` | `equalize` | Apply histogram equalization for better contrast |
+| `equalize-area` | `equalize-area <x> <y> <width> <height>` | Apply histogram equalization to specific region |
+| `grayscale` | `grayscale` | Convert to grayscale |
+| `sepia` | `sepia` | Apply sepia tone |
+| `invert` | `invert` | Invert colors |
 
-Fine-tune image colors and tones.
+## Filters (15 modifiers)
 
-| Modifier | Parameters | Range | Description |
-|----------|------------|-------|-------------|
-| `brightness` | `<value>` | -255 to 255 | Linear brightness adjustment |
-| `contrast` | `<factor>` | 0.0 to 3.0 | Contrast adjustment |
-| `saturation` | `<factor>` | 0.0 to 3.0 | Saturation adjustment |
-| `hue-shift` | `<degrees>` | 0 to 360 | Rotate hue in color space |
-| `gamma` | `<value>` | 0.1 to 3.0 | Gamma correction |
-| `exposure` | `<stops>` | -2.0 to 2.0 | Exposure adjustment in stops |
-| `vibrance` | `<amount>` | 0.0 to 1.0 | Enhance muted colors |
-| `equalize` | - | - | Histogram equalization for contrast |
+| Modifier | Usage | Description |
+|----------|-------|-------------|
+| `blur` | `blur <size>` | Box blur (kernel size, odd numbers) |
+| `gaussian-blur` | `gaussian-blur <sigma>` | Gaussian blur with configurable sigma |
+| `sharpen` | `sharpen` | Sharpen image |
+| `emboss` | `emboss <strength>` | Emboss effect for 3D-like appearance |
+| `color-emboss` | `color-emboss <strength>` | Emboss effect with color preservation |
+| `edge-detect` | `edge-detect` | Detect edges using Sobel operator |
+| `edge-enhancement` | `edge-enhancement <strength>` | Enhance edges (0.0-2.0) |
+| `median-filter` | `median-filter <size>` | Median filter for noise reduction (odd kernel size) |
+| `denoise` | `denoise <strength>` | Remove noise using bilateral filter (1-10) |
+| `pixelate` | `pixelate <size>` | Apply pixelation/mosaic effect |
+| `oil-painting` | `oil-painting <radius>` | Apply oil painting artistic effect |
+| `vignette` | `vignette <intensity>` | Apply vignette effect to darken corners (0.0-1.0) |
+| `glow` | `glow <intensity> <radius>` | Add soft glow around bright areas |
+| `tilt-shift` | `tilt-shift <blur> <focus_pos> <focus_width>` | Advanced tilt-shift effect with two-pass Gaussian blur, smooth focus transitions, and subtle saturation boost for realistic miniature appearance. Blur: 0.0-10.0, Focus position: 0.0-1.0 (top to bottom), Focus width: 0.0-1.0 |
+| `noise` | `noise <amount>` | Add random noise to image (0.0-1.0) |
+| `gradient-linear` | `gradient-linear <start_color> <end_color> <angle> <opacity>` | Apply linear gradient overlay |
+| `gradient-radial` | `gradient-radial <cx> <cy> <start_color> <end_color> <radius> <opacity>` | Apply radial gradient overlay |
+| `censor` | `censor <x> <y> <width> <height> <method> <strength>` | Apply censoring effect (blur/pixelate/black) |
 
-**Examples:**
+## Transforms (6 modifiers)
+
+| Modifier | Usage | Description |
+|----------|-------|-------------|
+| `resize` | `resize <width> <height>` | Resize image using nearest-neighbor sampling |
+| `crop` | `crop <x> <y> <width> <height>` | Crop image using top-left coordinate and size |
+| `rotate` | `rotate <degrees>` | Rotate image clockwise by any angle (auto-resizes canvas) |
+| `flip` | `flip <horizontal\|vertical>` | Flip image horizontally or vertically |
+| `round-corners` | `round-corners <radius>` | Round corners with specified radius |
+
+## Usage Examples
+
 ```bash
-# Basic color correction
-zig build run -- input.png brightness 20 contrast 1.2 saturation 1.1 -o output.png
+# Single modifier
+zig build run -- input.png brightness 20 -o output.png
 
-# Creative color effects
-zig build run -- input.png hue-shift 45 vibrance 0.3 -o output.png
-```
+# Chain multiple modifiers
+zig build run -- input.png brightness 10 contrast 1.2 sharpen -o output.png
 
-## Color Effects
-
-Transform colors with artistic effects.
-
-| Modifier | Parameters | Range | Description |
-|----------|------------|-------|-------------|
-| `grayscale` | - | - | Luminance-based grayscale conversion |
-| `sepia` | - | - | Apply sepia tone effect |
-| `invert` | - | - | Invert all color channels |
-| `threshold` | `<value>` | 0 to 255 | Binary threshold |
-| `solarize` | `<threshold>` | 0 to 255 | Solarization effect |
-| `posterize` | `<levels>` | 2 to 16 | Reduce color levels |
-| `colorize` | `<r> <g> <b> <strength>` | 0-255, 0.0-1.0 | Tint with RGB color |
-| `duotone` | `<r1> <g1> <b1> <r2> <g2> <b2>` | 0-255 | Map shadows to highlights gradient |
-
-**Examples:**
-```bash
-# Classic effects
-zig build run -- input.png sepia -o sepia.png
-zig build run -- input.png grayscale -o gray.png
-
-# Advanced color manipulation
-zig build run -- input.png posterize 8 -o poster.png
-zig build run -- input.png duotone 75 30 120 255 220 100 -o duotone.png
-```
-
-## Filters & Effects
-
-Apply convolution filters and artistic effects.
-
-| Modifier | Parameters | Range | Description |
-|----------|------------|-------|-------------|
-| `blur` | `<kernel>` | 3,5,7,9... (odd) | Box blur |
-| `gaussian-blur` | `<sigma>` | 0.5 to 5.0 | Gaussian blur |
-| `sharpen` | - | - | 3×3 sharpen convolution |
-| `edge-detect` | - | - | Sobel edge detection |
-| `emboss` | - | - | 3×3 emboss effect |
-| `median-filter` | `<size>` | 3,5,7 (odd) | Median filter for noise |
-| `noise` | `<amount>` | 0.0 to 1.0 | Add random noise |
-| `vignette` | `<strength>` | 0.0 to 1.0 | Darken corners |
-| `pixelate` | `<size>` | 2 to 50 | Pixelation effect |
-| `oil-painting` | `<radius>` | 1 to 5 | Oil painting effect |
-
-**Examples:**
-```bash
-# Basic filtering
-zig build run -- input.png gaussian-blur 1.5 -o blur.png
-zig build run -- input.png sharpen -o sharp.png
+# Advanced color grading
+zig build run -- photo.jpg vibrance 0.3 exposure 0.2 contrast 1.1 hue-shift 15 -o graded.png
 
 # Artistic effects
-zig build run -- input.png oil-painting 3 -o oil.png
-zig build run -- input.png vignette 0.5 -o vignette.png
+zig build run -- photo.jpg oil-painting 3 posterize 8 vignette 0.4 -o artistic.png
+
+# Professional portrait enhancement
+zig build run -- portrait.jpg median-filter 3 vibrance 0.2 contrast 1.1 sharpen -o enhanced.png
+
+# Batch processing
+zig build run -- *.jpg grayscale posterize 6 -d output/
+
+# Creative duotone effect
+zig build run -- photo.jpg duotone #333333 #C8C8C8 contrast 1.2 -o duotone.png
+
+# Edge detection for comic effect
+zig build run -- photo.jpg edge-detect posterize 6 contrast 1.5 -o comic.png
 ```
 
-## Geometric Transforms
-
-Change image dimensions and orientation.
-
-| Modifier | Parameters | Range | Description |
-|----------|------------|-------|-------------|
-| `resize` | `<width> <height>` | 1 to 65535 | Nearest-neighbor resizing |
-| `crop` | `<x> <y> <width> <height>` | ≥ 0 | Crop from top-left coordinate |
-| `rotate` | `<degrees>` | 90, 180, 270 | Rotate clockwise |
-| `flip-horizontal` | - | - | Flip image horizontally |
-| `flip-vertical` | - | - | Flip image vertically |
-
-**Examples:**
-```bash
-# Basic transforms
-zig build run -- input.png resize 800 600 -o resized.png
-zig build run -- input.png rotate 90 -o rotated.png
-
-# Combined operations
-zig build run -- input.png crop 100 100 400 400 flip-horizontal -o cropped.png
-```
-
-## Modifier Chaining
-
-Modifiers are applied in the order specified on the command line. Each modifier operates on the result of the previous one.
-
-**Syntax:**
-```bash
-zig build run -- input.png [modifier1] [params...] [modifier2] [params...] -o output.png
-```
-
-**Examples:**
-```bash
-# Color correction pipeline
-zig build run -- input.png brightness 10 contrast 1.2 saturation 1.1 -o corrected.png
-
-# Creative effect chain
-zig build run -- input.png sepia vignette 0.4 contrast 1.1 -o vintage.png
-
-# Complex processing
-zig build run -- input.png resize 1024 768 gaussian-blur 0.8 sharpen exposure 0.3 -o processed.png
-```
-
-## Parameter Validation
-
-mimg validates all parameters and provides helpful error messages:
-
-- **Range checking**: Parameters must be within specified ranges
-- **Type validation**: Numeric parameters only where expected
-- **Image bounds**: Crop/resize operations check image dimensions
-- **Kernel sizes**: Must be odd numbers for convolution filters
-
-**Example error messages:**
-```
-Error: brightness value must be between -255 and 255
-Error: kernel size must be odd (3, 5, 7, etc.)
-Error: crop rectangle (100, 100, 500, 500) exceeds image bounds (400, 300)
-```
-
-## Performance Notes
-
-- **SIMD Optimization**: Color adjustments use SIMD for maximum speed
-- **Memory Efficiency**: Filters reuse buffers to minimize allocations
-- **Tiled Processing**: Large images processed in tiles for memory-intensive operations
-- **Fast Operations**: Geometric transforms are highly optimized
-
-## Next Steps
-
-- [Presets](presets.md) - Save and reuse modifier chains
-- [Examples](examples.md) - Practical usage examples
-- [Performance](performance.md) - Benchmarks and optimization tips</content>
+## Supported Formats
+- **Input**: PNG, TGA, QOI, PAM, PBM, PGM, PPM, PCX
+- **Output**: PNG, TGA, QOI, PAM, PBM, PGM, PPM, PCX</content>
 <parameter name="filePath">c:\Users\brian\Documents\GitHub\mimg\docs\modifiers.md

@@ -2,6 +2,7 @@ const std = @import("std");
 const types = @import("types.zig");
 const utils = @import("utils.zig");
 const modifiers = @import("../processing/modifiers.zig");
+// no direct filter imports needed here
 
 // Global options (non-modifiers)
 pub const global_options = [_]types.Argument{
@@ -278,21 +279,14 @@ pub fn printHelp(ctx: *types.Context, args: anytype) !void {
     std.debug.print("  mimg *.jpg grayscale vignette 0.4 -d processed/\n", .{});
     std.debug.print("  mimg photo.png resize 800 600 crop 100 100 600 400 sharpen\n\n", .{});
 
-    // Color Adjustments
-    std.debug.print("COLOR ADJUSTMENTS:\n", .{});
-    printModifiersInCategory(&[_][]const u8{ "brightness", "contrast", "saturation", "hue-shift", "gamma", "exposure", "vibrance", "equalize" });
-
-    // Color Effects
-    std.debug.print("\nCOLOR EFFECTS:\n", .{});
-    printModifiersInCategory(&[_][]const u8{ "grayscale", "sepia", "invert", "threshold", "solarize", "posterize", "colorize", "duotone" });
-
-    // Filters & Effects
-    std.debug.print("\nFILTERS & EFFECTS:\n", .{});
-    printModifiersInCategory(&[_][]const u8{ "blur", "gaussian-blur", "sharpen", "edge-detect", "emboss", "median-filter", "noise", "vignette", "pixelate", "oil-painting" });
-
-    // Geometric Transforms
-    std.debug.print("\nGEOMETRIC TRANSFORMS:\n", .{});
-    printModifiersInCategory(&[_][]const u8{ "resize", "crop", "rotate", "flip" });
+    std.debug.print("MODIFIERS (all available):\n", .{});
+    inline for (modifiers.modifiers) |modifier| {
+        const names_str = getOptionName(modifier.names);
+        std.debug.print("  {s: <20} {s}\n", .{ names_str, modifier.description });
+        if (modifier.usage.len > 0) {
+            std.debug.print("    usage: {s}\n", .{modifier.usage});
+        }
+    }
 
     // Global Options
     std.debug.print("\nGLOBAL OPTIONS:\n", .{});

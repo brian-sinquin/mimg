@@ -33,7 +33,7 @@ jobs:
         run: zig build -Doptimize=ReleaseSafe
 
       - name: Run tests
-        run: zig build -Dtests test 
+        run: zig build test
 
       - name: Build gallery
-        run: zig build -Dgallery gallery
+        run: zig build gallery
