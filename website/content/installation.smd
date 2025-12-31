@@ -1,0 +1,34 @@
+---
+.title = "Installation",
+.description = "How to install and build mimg from source",
+.date = @date("2025-01-01T00:00:00"),
+.author = "mimg contributors",
+.layout = "default.shtml",
+.draft = false,
+---
+
+# Installation
+
+## Requirements
+
+- Zig 0.15.1 or later
+
+## Build from Source
+
+```bash
+git clone https://github.com/brian-sinquin/mimg.git
+cd mimg
+zig build
+```
+
+The binary will be in `zig-out/bin/mimg`.
+
+## Development
+
+```bash
+# Run tests
+zig build test
+
+# Generate example gallery
+zig build gallery
+```

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><span :text="$page.title"></span> - mimg</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <nav>
+        <div class="container">
+            <h1>mimg</h1>
+            <ul>
+                <li><a href="/">Home</a></li>
+                <li><a href="/gallery/">Gallery</a></li>
+                <li><a href="/modifiers/">Modifiers</a></li>
+                <li><a href="/installation/">Install</a></li>
+                <li><a href="/examples/">Examples</a></li>
+                <li><a href="https://github.com/brian-sinquin/mimg">GitHub</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main>
+        <main>
+            <article>
+                <h1>Gallery</h1>
+                <p>Explore the power of mimg with 38 different effects and combinations. All examples use the classic Lena test image.</p>
+
+                <ctx :loop="$site.asset('gallery-data.ziggy').ziggy().get('categories')">
+                    <div class="gallery-category">
+                        <h2 :text="$loop.it.get('title')"></h2>
+                        <p :text="$loop.it.get('description')"></p>
+                        <div class="gallery-grid">
+                            <ctx :loop="$loop.it.get('examples')">
+                                <div class="gallery-item">
+                                    <div class="command-container">
+                                        <code :text="$loop.it.get('command')"></code>
+                                        <button class="copy-btn" onclick="copyCommand(this)">
+                                            <svg class="copy-icon" width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+                                            Copy
+                                        </button>
+                                    </div>
+                                    <img src="$loop.it.get('output').prefix('/gallery/')" alt="$loop.it.get('name')" loading="lazy">
+                                    <div class="gallery-info">
+                                        <h3 :text="$loop.it.get('name')"></h3>
+                                        <p :text="$loop.it.get('description')"></p>
+                                    </div>
+                                </div>
+                            </ctx>
+                        </div>
+                    </div>
+                </ctx>
+            </article>
+        </main>
+
+        <footer>
+            <div class="container">
+                <p>© 2025 mimg | MIT License</p>
+            </div>
+        </footer>
+    </main>
+
+    <script src="/copy.js"></script>
+</body>
+</html>

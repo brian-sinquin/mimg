@@ -1,0 +1,25 @@
+---
+.title = "Supported Formats",
+.description = "Image formats supported by mimg",
+.date = @date("2025-01-01T00:00:00"),
+.author = "mimg contributors",
+.layout = "default.shtml",
+.draft = false,
+---
+
+# Supported Formats
+
+## Supported Formats
+
+**Input**: PNG, JPEG, BMP, TGA, QOI, PAM, PBM, PGM, PPM, PCX
+**Output**: PNG, TGA, QOI, PAM, PBM, PGM, PPM
+
+## Usage
+
+```bash
+# Auto-detect format from extension
+zig build run -- photo.jpg brightness 20 -o enhanced.png
+
+# Convert format explicitly
+zig build run -- photo.jpg --output-extension .png -o converted.png
+```

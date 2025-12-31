@@ -4,7 +4,11 @@
     .dependencies = .{
         .zigimg = .{
             .url = "https://github.com/zigimg/zigimg/archive/master.tar.gz",
-            .hash = "zigimg-0.1.0-8_eo2vBrFQBhsrLpexdcDQY-zrlzkyFZfKuYX-Nry6KN",
+            .hash = "zigimg-0.1.0-8_eo2vUZFgAAtN1c6dAO5DdqL0d4cEWHtn6iR5ucZJti",
+        },
+        .zine = .{
+            .url = "https://github.com/kristoff-it/zine/archive/refs/heads/main.tar.gz",
+            .hash = "zine-0.11.2-ou6nIDd6FgAQCo8y1pypWVcGxfH91Vlqdspeop3Hjrwj",
         },
     },
     .paths = .{""},

@@ -1,0 +1,475 @@
+{
+  "source_image": "lena.png",
+  "categories": [
+    {
+      "id": "individual",
+      "title": "Individual Modifiers",
+      "description": "Explore each modifier's unique effect",
+      "examples": [
+        {
+          "name": "Invert",
+          "description": "Invert all colors for negative effect",
+          "args": [
+            "invert"
+          ],
+          "command": "invert",
+          "output": "invert_lena.png"
+        },
+        {
+          "name": "Grayscale",
+          "description": "Convert to grayscale",
+          "args": [
+            "grayscale"
+          ],
+          "command": "grayscale",
+          "output": "grayscale_lena.png"
+        },
+        {
+          "name": "Sepia",
+          "description": "Classic sepia tone effect",
+          "args": [
+            "sepia"
+          ],
+          "command": "sepia",
+          "output": "sepia_lena.png"
+        },
+        {
+          "name": "Bright +40",
+          "description": "Increase brightness",
+          "args": [
+            "brightness",
+            "40"
+          ],
+          "command": "brightness 40",
+          "output": "brightness_40_lena.png"
+        },
+        {
+          "name": "High Contrast",
+          "description": "Boost contrast for dramatic effect",
+          "args": [
+            "contrast",
+            "1.8"
+          ],
+          "command": "contrast 1.8",
+          "output": "contrast_1_8_lena.png"
+        },
+        {
+          "name": "Vibrant Colors",
+          "description": "Boost saturation for vibrant colors",
+          "args": [
+            "saturation",
+            "1.6"
+          ],
+          "command": "saturation 1.6",
+          "output": "saturation_1_6_lena.png"
+        },
+        {
+          "name": "Gamma Correct",
+          "description": "Apply gamma correction",
+          "args": [
+            "gamma",
+            "1.8"
+          ],
+          "command": "gamma 1.8",
+          "output": "gamma_1_8_lena.png"
+        },
+        {
+          "name": "Gaussian Blur",
+          "description": "Soft gaussian blur effect",
+          "args": [
+            "gaussian-blur",
+            "3.0"
+          ],
+          "command": "gaussian-blur 3.0",
+          "output": "gaussian-blur_3_0_lena.png"
+        },
+        {
+          "name": "Sharp Focus",
+          "description": "Sharpen image details",
+          "args": [
+            "sharpen"
+          ],
+          "command": "sharpen",
+          "output": "sharpen_lena.png"
+        },
+        {
+          "name": "Emboss 3D",
+          "description": "3D emboss effect",
+          "args": [
+            "emboss",
+            "1.5"
+          ],
+          "command": "emboss 1.5",
+          "output": "emboss_1_5_lena.png"
+        },
+        {
+          "name": "Color Emboss",
+          "description": "Emboss with color preservation",
+          "args": [
+            "color-emboss",
+            "1.2"
+          ],
+          "command": "color-emboss 1.2",
+          "output": "color-emboss_1_2_lena.png"
+        },
+        {
+          "name": "Soft Glow",
+          "description": "Add ethereal glow effect",
+          "args": [
+            "glow",
+            "0.7",
+            "12"
+          ],
+          "command": "glow 0.7 12",
+          "output": "glow_0_7_12_lena.png"
+        },
+        {
+          "name": "Vignette",
+          "description": "Dark corners vignette",
+          "args": [
+            "vignette",
+            "0.6"
+          ],
+          "command": "vignette 0.6",
+          "output": "vignette_0_6_lena.png"
+        },
+        {
+          "name": "Posterize",
+          "description": "Reduce to 6 color levels",
+          "args": [
+            "posterize",
+            "6"
+          ],
+          "command": "posterize 6",
+          "output": "posterize_6_lena.png"
+        },
+        {
+          "name": "Hue Shift",
+          "description": "Shift colors by 90 degrees",
+          "args": [
+            "hue-shift",
+            "90"
+          ],
+          "command": "hue-shift 90",
+          "output": "hue-shift_90_lena.png"
+        },
+        {
+          "name": "Edge Detection",
+          "description": "Detect image edges",
+          "args": [
+            "edge-detect"
+          ],
+          "command": "edge-detect",
+          "output": "edge-detect_lena.png"
+        },
+        {
+          "name": "Pixelate",
+          "description": "8-bit pixel effect",
+          "args": [
+            "pixelate",
+            "8"
+          ],
+          "command": "pixelate 8",
+          "output": "pixelate_8_lena.png"
+        },
+        {
+          "name": "Film Noise",
+          "description": "Add vintage film grain",
+          "args": [
+            "noise",
+            "0.15"
+          ],
+          "command": "noise 0.15",
+          "output": "noise_0_15_lena.png"
+        },
+        {
+          "name": "High Exposure",
+          "description": "Overexposed bright effect",
+          "args": [
+            "exposure",
+            "1.2"
+          ],
+          "command": "exposure 1.2",
+          "output": "exposure_1_2_lena.png"
+        },
+        {
+          "name": "Vibrance",
+          "description": "Smart saturation boost",
+          "args": [
+            "vibrance",
+            "0.6"
+          ],
+          "command": "vibrance 0.6",
+          "output": "vibrance_0_6_lena.png"
+        },
+        {
+          "name": "Equalize",
+          "description": "Histogram equalization",
+          "args": [
+            "equalize"
+          ],
+          "command": "equalize",
+          "output": "equalize_lena.png"
+        },
+        {
+          "name": "Blue Tint",
+          "description": "Cool blue colorization",
+          "args": [
+            "colorize",
+            "#6496FF",
+            "0.4"
+          ],
+          "command": "colorize #6496FF 0.4",
+          "output": "colorize_0x6496FF_0_4_lena.png"
+        },
+        {
+          "name": "Oil Painting",
+          "description": "Artistic oil paint effect",
+          "args": [
+            "oil-painting",
+            "3"
+          ],
+          "command": "oil-painting 3",
+          "output": "oil-painting_3_lena.png"
+        },
+        {
+          "name": "Tilt Shift",
+          "description": "Advanced miniature depth of field effect",
+          "args": [
+            "tilt-shift",
+            "5.0",
+            "0.5",
+            "0.08"
+          ],
+          "command": "tilt-shift 5.0 0.5 0.08",
+          "output": "tilt-shift_5_0_0_5_0_08_lena.png"
+        },
+        {
+          "name": "Round Corners",
+          "description": "Smooth rounded corners",
+          "args": [
+            "round-corners",
+            "25"
+          ],
+          "command": "round-corners 25",
+          "output": "round-corners_25_lena.png"
+        },
+        {
+          "name": "Rotate 30°",
+          "description": "Rotate 30 degrees",
+          "args": [
+            "rotate",
+            "30"
+          ],
+          "command": "rotate 30",
+          "output": "rotate_30_lena.png"
+        },
+        {
+          "name": "Flip Horizontal",
+          "description": "Mirror horizontally",
+          "args": [
+            "flip",
+            "horizontal"
+          ],
+          "command": "flip horizontal",
+          "output": "flip_horizontal_lena.png"
+        }
+      ]
+    },
+    {
+      "id": "combinations",
+      "title": "Modifier Combinations",
+      "description": "Powerful multi-modifier effects",
+      "examples": [
+        {
+          "name": "Vintage Portrait",
+          "description": "Sepia tone with a gentle vignette for a classic look",
+          "args": [
+            "sepia",
+            "contrast",
+            "1.1",
+            "vignette",
+            "0.45"
+          ],
+          "command": "sepia contrast 1.1 vignette 0.45",
+          "output": "sepia_contrast_1_1_vignette_0_45_lena.png"
+        },
+        {
+          "name": "Pop Art",
+          "description": "Bold posterization with punchy color and contrast",
+          "args": [
+            "gaussian-blur",
+            "2.0",
+            "posterize",
+            "5",
+            "edge-enhancement",
+            "0.3",
+            "saturation",
+            "1.6",
+            "contrast",
+            "0.5"
+          ],
+          "command": "gaussian-blur 2.0 posterize 5 edge-enhancement 0.3 saturation 1.6 contrast 0.5",
+          "output": "gaussian-blur_2_0_posterize_5_edge-enhancement_0_3_saturation_1_6_contrast_0_5_lena.png"
+        },
+        {
+          "name": "Cyberpunk",
+          "description": "Cool neon tint, soft glow, and crisp edges",
+          "args": [
+            "colorize",
+            "#00A8FF",
+            "0.55",
+            "glow",
+            "0.8",
+            "12",
+            "edge-enhancement",
+            "1.35",
+            "contrast",
+            "1.15",
+            "vignette",
+            "0.15"
+          ],
+          "command": "colorize #00A8FF 0.55 glow 0.8 12 edge-enhancement 1.35 contrast 1.15 vignette 0.15",
+          "output": "colorize_0x00A8FF_0_55_glow_0_8_12_edge-enhancement_1_35_contrast_1_15_vignette_0_15_lena.png"
+        },
+        {
+          "name": "Dreamy Portrait",
+          "description": "Soft painterly look with a gentle bloom",
+          "args": [
+            "oil-painting",
+            "3",
+            "glow",
+            "0.35",
+            "12",
+            "exposure",
+            "0.15",
+            "saturation",
+            "1.1",
+            "vignette",
+            "0.25"
+          ],
+          "command": "oil-painting 3 glow 0.35 12 exposure 0.15 saturation 1.1 vignette 0.25",
+          "output": "oil-painting_3_glow_0_35_12_exposure_0_15_saturation_1_1_vignette_0_25_lena.png"
+        },
+        {
+          "name": "Film Noir",
+          "description": "Moody black and white with contrast and vignette",
+          "args": [
+            "grayscale",
+            "contrast",
+            "1.9",
+            "sharpen",
+            "vignette",
+            "0.65",
+            "noise",
+            "0.06"
+          ],
+          "command": "grayscale contrast 1.9 sharpen vignette 0.65 noise 0.06",
+          "output": "grayscale_contrast_1_9_sharpen_vignette_0_65_noise_0_06_lena.png"
+        },
+        {
+          "name": "Artistic Sketch",
+          "description": "Edge outlines with minimal palette",
+          "args": [
+            "edge-detect",
+            "invert",
+            "posterize",
+            "3",
+            "contrast",
+            "1.2"
+          ],
+          "command": "edge-detect invert posterize 3 contrast 1.2",
+          "output": "edge-detect_invert_posterize_3_contrast_1_2_lena.png"
+        },
+        {
+          "name": "Neon Glow",
+          "description": "Bright edges with colorful radiance",
+          "args": [
+            "edge-enhancement",
+            "1.3",
+            "glow",
+            "0.55",
+            "12",
+            "saturation",
+            "1.2",
+            "vignette",
+            "0.10"
+          ],
+          "command": "edge-enhancement 1.3 glow 0.55 12 saturation 1.2 vignette 0.10",
+          "output": "edge-enhancement_1_3_glow_0_55_12_saturation_1_2_vignette_0_10_lena.png"
+        },
+        {
+          "name": "Solar Dream",
+          "description": "Radiant duotone with soft glow and high vibrance",
+          "args": [
+            "duotone",
+            "#FFD700",
+            "#FF69B4",
+            "glow",
+            "0.5",
+            "10",
+            "vibrance",
+            "0.8",
+            "contrast",
+            "1.2"
+          ],
+          "command": "duotone #FFD700 #FF69B4 glow 0.5 10 vibrance 0.8 contrast 1.2",
+          "output": "duotone_0xFFD700_0xFF69B4_glow_0_5_10_vibrance_0_8_contrast_1_2_lena.png"
+        },
+        {
+          "name": "Retro Fade",
+          "description": "Muted colors, film grain, and faded vignette for a vintage look",
+          "args": [
+            "posterize",
+            "7",
+            "saturation",
+            "0.7",
+            "noise",
+            "0.12",
+            "vignette",
+            "0.35",
+            "contrast",
+            "0.8"
+          ],
+          "command": "posterize 7 saturation 0.7 noise 0.12 vignette 0.35 contrast 0.8",
+          "output": "posterize_7_saturation_0_7_noise_0_12_vignette_0_35_contrast_0_8_lena.png"
+        },
+        {
+          "name": "Arctic Mist",
+          "description": "Cool blue tint, gaussian blur, and crisp edges for frosty effect",
+          "args": [
+            "colorize",
+            "#AEEFFF",
+            "0.4",
+            "gaussian-blur",
+            "2.5",
+            "edge-enhancement",
+            "1.1",
+            "contrast",
+            "1.05"
+          ],
+          "command": "colorize #AEEFFF 0.4 gaussian-blur 2.5 edge-enhancement 1.1 contrast 1.05",
+          "output": "colorize_0xAEEFFF_0_4_gaussian-blur_2_5_edge-enhancement_1_1_contrast_1_05_lena.png"
+        },
+        {
+          "name": "Nightlife",
+          "description": "Vivid colors, tilt-shift, and high contrast for a dramatic city vibe",
+          "args": [
+            "saturation",
+            "1.7",
+            "tilt-shift",
+            "6.5",
+            "0.5",
+            "0.07",
+            "contrast",
+            "1.3",
+            "vignette",
+            "0.22"
+          ],
+          "command": "saturation 1.7 tilt-shift 6.5 0.5 0.07 contrast 1.3 vignette 0.22",
+          "output": "saturation_1_7_tilt-shift_6_5_0_5_0_07_contrast_1_3_vignette_0_22_lena.png"
+        }
+      ]
+    }
+  ]
+}

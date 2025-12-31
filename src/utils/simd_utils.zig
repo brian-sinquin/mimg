@@ -74,34 +74,55 @@ pub fn calculateLuminance(pixel: img.color.Rgba32) f32 {
     return 0.299 * rf + 0.587 * gf + 0.114 * bf;
 }
 
-/// Apply brightness adjustment to a single pixel
-pub fn adjustBrightnessPixel(pixel: img.color.Rgba32, delta: anytype) img.color.Rgba32 {
+/// Generic helper: apply operation to RGB channels with context
+inline fn applyChannelOp(pixel: img.color.Rgba32, context: anytype, comptime op: fn (u8, @TypeOf(context)) u8) img.color.Rgba32 {
     return img.color.Rgba32{
-        .r = @as(u8, @intCast(std.math.clamp(@as(i16, @intCast(pixel.r)) + delta, 0, 255))),
-        .g = @as(u8, @intCast(std.math.clamp(@as(i16, @intCast(pixel.g)) + delta, 0, 255))),
-        .b = @as(u8, @intCast(std.math.clamp(@as(i16, @intCast(pixel.b)) + delta, 0, 255))),
+        .r = op(pixel.r, context),
+        .g = op(pixel.g, context),
+        .b = op(pixel.b, context),
         .a = pixel.a,
     };
+}
+
+/// Generic helper: apply float operation to RGB channels
+inline fn applyChannelOpFloat(pixel: img.color.Rgba32, context: anytype, comptime op: fn (f32, @TypeOf(context)) f32) img.color.Rgba32 {
+    const utils = @import("../core/utils.zig");
+    return img.color.Rgba32{
+        .r = utils.clampU8(op(@as(f32, @floatFromInt(pixel.r)), context)),
+        .g = utils.clampU8(op(@as(f32, @floatFromInt(pixel.g)), context)),
+        .b = utils.clampU8(op(@as(f32, @floatFromInt(pixel.b)), context)),
+        .a = pixel.a,
+    };
+}
+
+/// Apply brightness adjustment to a single pixel
+pub fn adjustBrightnessPixel(pixel: img.color.Rgba32, delta: anytype) img.color.Rgba32 {
+    const op = struct {
+        fn apply(val: u8, d: @TypeOf(delta)) u8 {
+            return @as(u8, @intCast(std.math.clamp(@as(i16, @intCast(val)) + d, 0, 255)));
+        }
+    }.apply;
+    return applyChannelOp(pixel, delta, op);
 }
 
 /// Apply contrast adjustment to a single pixel
 pub fn adjustContrastPixel(pixel: img.color.Rgba32, factor: anytype) img.color.Rgba32 {
-    return img.color.Rgba32{
-        .r = @as(u8, @intFromFloat(std.math.clamp((@as(f32, @floatFromInt(pixel.r)) - 128.0) * factor + 128.0, 0.0, 255.0))),
-        .g = @as(u8, @intFromFloat(std.math.clamp((@as(f32, @floatFromInt(pixel.g)) - 128.0) * factor + 128.0, 0.0, 255.0))),
-        .b = @as(u8, @intFromFloat(std.math.clamp((@as(f32, @floatFromInt(pixel.b)) - 128.0) * factor + 128.0, 0.0, 255.0))),
-        .a = pixel.a,
-    };
+    const op = struct {
+        fn apply(val: f32, f: @TypeOf(factor)) f32 {
+            return (val - 128.0) * f + 128.0;
+        }
+    }.apply;
+    return applyChannelOpFloat(pixel, factor, op);
 }
 
 /// Apply gamma correction to a single pixel
 pub fn adjustGammaPixel(pixel: img.color.Rgba32, inv_gamma: f32) img.color.Rgba32 {
-    return img.color.Rgba32{
-        .r = @as(u8, @intFromFloat(255.0 * std.math.pow(f32, @as(f32, @floatFromInt(pixel.r)) / 255.0, inv_gamma))),
-        .g = @as(u8, @intFromFloat(255.0 * std.math.pow(f32, @as(f32, @floatFromInt(pixel.g)) / 255.0, inv_gamma))),
-        .b = @as(u8, @intFromFloat(255.0 * std.math.pow(f32, @as(f32, @floatFromInt(pixel.b)) / 255.0, inv_gamma))),
-        .a = pixel.a,
-    };
+    const op = struct {
+        fn apply(val: f32, ig: f32) f32 {
+            return 255.0 * std.math.pow(f32, val / 255.0, ig);
+        }
+    }.apply;
+    return applyChannelOpFloat(pixel, inv_gamma, op);
 }
 
 /// Apply sepia tone to a single pixel
@@ -109,23 +130,25 @@ pub fn applySepiaPixel(pixel: img.color.Rgba32) img.color.Rgba32 {
     const r = @as(f32, @floatFromInt(pixel.r));
     const g = @as(f32, @floatFromInt(pixel.g));
     const b = @as(f32, @floatFromInt(pixel.b));
-
+    
+    // Sepia matrix transformation
+    const utils = @import("../core/utils.zig");
     return img.color.Rgba32{
-        .r = @as(u8, @intFromFloat(std.math.clamp(0.393 * r + 0.769 * g + 0.189 * b, 0.0, 255.0))),
-        .g = @as(u8, @intFromFloat(std.math.clamp(0.349 * r + 0.686 * g + 0.168 * b, 0.0, 255.0))),
-        .b = @as(u8, @intFromFloat(std.math.clamp(0.272 * r + 0.534 * g + 0.131 * b, 0.0, 255.0))),
+        .r = utils.clampU8(0.393 * r + 0.769 * g + 0.189 * b),
+        .g = utils.clampU8(0.349 * r + 0.686 * g + 0.168 * b),
+        .b = utils.clampU8(0.272 * r + 0.534 * g + 0.131 * b),
         .a = pixel.a,
     };
 }
 
 /// Invert colors of a single pixel
 pub fn invertPixel(pixel: img.color.Rgba32) img.color.Rgba32 {
-    return img.color.Rgba32{
-        .r = 255 - pixel.r,
-        .g = 255 - pixel.g,
-        .b = 255 - pixel.b,
-        .a = pixel.a,
-    };
+    const op = struct {
+        fn apply(val: u8, _: void) u8 {
+            return 255 - val;
+        }
+    }.apply;
+    return applyChannelOp(pixel, {}, op);
 }
 
 /// Convert pixel to grayscale
@@ -152,6 +175,59 @@ pub fn sqrtVec4F32(vec: Vec4f32) Vec4f32 {
 /// Clamp a Vec4f32 to min/max values
 pub fn clampVec4F32(vec: Vec4f32, min_val: Vec4f32, max_val: Vec4f32) Vec4f32 {
     return @max(min_val, @min(vec, max_val));
+}
+
+/// Load 4 pixels into RGB Vec4f32 vectors for SIMD processing
+pub inline fn loadPixel4Vec(pixels: []const img.color.Rgba32, index: usize) struct { Vec4f32, Vec4f32, Vec4f32 } {
+    return .{
+        [_]f32{
+            @as(f32, @floatFromInt(pixels[index].r)),
+            @as(f32, @floatFromInt(pixels[index + 1].r)),
+            @as(f32, @floatFromInt(pixels[index + 2].r)),
+            @as(f32, @floatFromInt(pixels[index + 3].r)),
+        },
+        [_]f32{
+            @as(f32, @floatFromInt(pixels[index].g)),
+            @as(f32, @floatFromInt(pixels[index + 1].g)),
+            @as(f32, @floatFromInt(pixels[index + 2].g)),
+            @as(f32, @floatFromInt(pixels[index + 3].g)),
+        },
+        [_]f32{
+            @as(f32, @floatFromInt(pixels[index].b)),
+            @as(f32, @floatFromInt(pixels[index + 1].b)),
+            @as(f32, @floatFromInt(pixels[index + 2].b)),
+            @as(f32, @floatFromInt(pixels[index + 3].b)),
+        },
+    };
+}
+
+/// Store RGB Vec4f32 vectors back to 4 pixels
+pub inline fn storePixel4Vec(
+    pixels: []img.color.Rgba32,
+    index: usize,
+    r_vec: Vec4f32,
+    g_vec: Vec4f32,
+    b_vec: Vec4f32,
+) void {
+    const r_clamped = clampVec4F32ToU8(r_vec);
+    const g_clamped = clampVec4F32ToU8(g_vec);
+    const b_clamped = clampVec4F32ToU8(b_vec);
+    
+    pixels[index].r = r_clamped[0];
+    pixels[index].g = g_clamped[0];
+    pixels[index].b = b_clamped[0];
+    
+    pixels[index + 1].r = r_clamped[1];
+    pixels[index + 1].g = g_clamped[1];
+    pixels[index + 1].b = b_clamped[1];
+    
+    pixels[index + 2].r = r_clamped[2];
+    pixels[index + 2].g = g_clamped[2];
+    pixels[index + 2].b = b_clamped[2];
+    
+    pixels[index + 3].r = r_clamped[3];
+    pixels[index + 3].g = g_clamped[3];
+    pixels[index + 3].b = b_clamped[3];
 }
 
 /// Apply vibrance adjustment to 4 pixels at once using SIMD
