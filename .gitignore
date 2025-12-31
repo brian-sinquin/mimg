@@ -8,5 +8,9 @@ zig-out/
 *.tiff
 TODO
 examples/gallery/output/
+batch_test/
 batch_tests/
+website/content/convert_docs.py
+website/content/gallery-data.json
+website/gallery-data.json
 RELEASES.md

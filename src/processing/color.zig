@@ -32,33 +32,14 @@ pub fn adjustSaturation(ctx: *Context, args: anytype) !void {
 
     utils.logVerbose(ctx, "Applying saturation adjustment by {}", .{factor});
 
-    // Use SIMD processing with proper vector operations
     const pixels = ctx.image.pixels.rgba32;
     const pixel_count = pixels.len;
     var i: usize = 0;
 
-    // Process in chunks of 4 pixels using actual SIMD vector operations
+    // Process in chunks of 4 pixels using SIMD helpers
     while (i + 4 <= pixel_count) : (i += 4) {
-        // Load 4 pixels and convert to f32 vectors
-        const r_vec: simd.Vec4f32 = [_]f32{
-            @as(f32, @floatFromInt(pixels[i].r)),
-            @as(f32, @floatFromInt(pixels[i + 1].r)),
-            @as(f32, @floatFromInt(pixels[i + 2].r)),
-            @as(f32, @floatFromInt(pixels[i + 3].r)),
-        };
-        const g_vec: simd.Vec4f32 = [_]f32{
-            @as(f32, @floatFromInt(pixels[i].g)),
-            @as(f32, @floatFromInt(pixels[i + 1].g)),
-            @as(f32, @floatFromInt(pixels[i + 2].g)),
-            @as(f32, @floatFromInt(pixels[i + 3].g)),
-        };
-        const b_vec: simd.Vec4f32 = [_]f32{
-            @as(f32, @floatFromInt(pixels[i].b)),
-            @as(f32, @floatFromInt(pixels[i + 1].b)),
-            @as(f32, @floatFromInt(pixels[i + 2].b)),
-            @as(f32, @floatFromInt(pixels[i + 3].b)),
-        };
-
+        const r_vec, const g_vec, const b_vec = simd.loadPixel4Vec(pixels, i);
+        
         // Calculate luminance for each pixel using SIMD
         const lum_vec = r_vec * @as(simd.Vec4f32, @splat(0.299)) +
             g_vec * @as(simd.Vec4f32, @splat(0.587)) +
@@ -70,16 +51,7 @@ pub fn adjustSaturation(ctx: *Context, args: anytype) !void {
         const new_g_vec = lum_vec + (g_vec - lum_vec) * factor_vec;
         const new_b_vec = lum_vec + (b_vec - lum_vec) * factor_vec;
 
-        // Clamp and convert back to u8
-        const clamped_r = simd.clampVec4F32ToU8(new_r_vec);
-        const clamped_g = simd.clampVec4F32ToU8(new_g_vec);
-        const clamped_b = simd.clampVec4F32ToU8(new_b_vec);
-
-        // Store back (preserve original alpha)
-        pixels[i] = img.color.Rgba32{ .r = clamped_r[0], .g = clamped_g[0], .b = clamped_b[0], .a = pixels[i].a };
-        pixels[i + 1] = img.color.Rgba32{ .r = clamped_r[1], .g = clamped_g[1], .b = clamped_b[1], .a = pixels[i + 1].a };
-        pixels[i + 2] = img.color.Rgba32{ .r = clamped_r[2], .g = clamped_g[2], .b = clamped_b[2], .a = pixels[i + 2].a };
-        pixels[i + 3] = img.color.Rgba32{ .r = clamped_r[3], .g = clamped_g[3], .b = clamped_b[3], .a = pixels[i + 3].a };
+        simd.storePixel4Vec(pixels, i, new_r_vec, new_g_vec, new_b_vec);
     }
 
     // Handle remaining pixels with scalar operations using inline helpers
@@ -171,48 +143,9 @@ pub fn adjustVibrance(ctx: *Context, args: anytype) !void {
 
     // Process in chunks of 4 pixels using SIMD
     while (i + 4 <= pixel_count) : (i += 4) {
-        // Load 4 pixels into vectors
-        const r_vec: simd.Vec4f32 = [_]f32{
-            @as(f32, @floatFromInt(pixels[i].r)),
-            @as(f32, @floatFromInt(pixels[i + 1].r)),
-            @as(f32, @floatFromInt(pixels[i + 2].r)),
-            @as(f32, @floatFromInt(pixels[i + 3].r)),
-        };
-        const g_vec: simd.Vec4f32 = [_]f32{
-            @as(f32, @floatFromInt(pixels[i].g)),
-            @as(f32, @floatFromInt(pixels[i + 1].g)),
-            @as(f32, @floatFromInt(pixels[i + 2].g)),
-            @as(f32, @floatFromInt(pixels[i + 3].g)),
-        };
-        const b_vec: simd.Vec4f32 = [_]f32{
-            @as(f32, @floatFromInt(pixels[i].b)),
-            @as(f32, @floatFromInt(pixels[i + 1].b)),
-            @as(f32, @floatFromInt(pixels[i + 2].b)),
-            @as(f32, @floatFromInt(pixels[i + 3].b)),
-        };
-
-        // Apply vibrance adjustment using SIMD
+        const r_vec, const g_vec, const b_vec = simd.loadPixel4Vec(pixels, i);
         const result = simd.adjustVibranceSIMD4(r_vec, g_vec, b_vec, factor);
-        const new_r_vec = simd.clampVec4F32ToU8(result[0]);
-        const new_g_vec = simd.clampVec4F32ToU8(result[1]);
-        const new_b_vec = simd.clampVec4F32ToU8(result[2]);
-
-        // Store back (preserve alpha)
-        pixels[i].r = new_r_vec[0];
-        pixels[i].g = new_g_vec[0];
-        pixels[i].b = new_b_vec[0];
-
-        pixels[i + 1].r = new_r_vec[1];
-        pixels[i + 1].g = new_g_vec[1];
-        pixels[i + 1].b = new_b_vec[1];
-
-        pixels[i + 2].r = new_r_vec[2];
-        pixels[i + 2].g = new_g_vec[2];
-        pixels[i + 2].b = new_b_vec[2];
-
-        pixels[i + 3].r = new_r_vec[3];
-        pixels[i + 3].g = new_g_vec[3];
-        pixels[i + 3].b = new_b_vec[3];
+        simd.storePixel4Vec(pixels, i, result[0], result[1], result[2]);
     }
 
     // Handle remaining pixels with scalar operations
@@ -584,41 +517,15 @@ pub fn adjustChannels(ctx: *Context, args: anytype) !void {
 
     // Process in chunks of 4 pixels
     while (i + 4 <= pixel_count) : (i += 4) {
-        // Load 4 pixels
-        const r_vec: simd.Vec4f32 = [_]f32{
-            @as(f32, @floatFromInt(pixels[i].r)),
-            @as(f32, @floatFromInt(pixels[i + 1].r)),
-            @as(f32, @floatFromInt(pixels[i + 2].r)),
-            @as(f32, @floatFromInt(pixels[i + 3].r)),
-        };
-        const g_vec: simd.Vec4f32 = [_]f32{
-            @as(f32, @floatFromInt(pixels[i].g)),
-            @as(f32, @floatFromInt(pixels[i + 1].g)),
-            @as(f32, @floatFromInt(pixels[i + 2].g)),
-            @as(f32, @floatFromInt(pixels[i + 3].g)),
-        };
-        const b_vec: simd.Vec4f32 = [_]f32{
-            @as(f32, @floatFromInt(pixels[i].b)),
-            @as(f32, @floatFromInt(pixels[i + 1].b)),
-            @as(f32, @floatFromInt(pixels[i + 2].b)),
-            @as(f32, @floatFromInt(pixels[i + 3].b)),
-        };
-
+        const vecs = simd.loadPixel4Vec(pixels, i);
+        
         // Apply multipliers
-        const new_r_vec = r_vec * @as(simd.Vec4f32, @splat(multipliers[0]));
-        const new_g_vec = g_vec * @as(simd.Vec4f32, @splat(multipliers[1]));
-        const new_b_vec = b_vec * @as(simd.Vec4f32, @splat(multipliers[2]));
+        const new_r_vec = vecs[0] * @as(simd.Vec4f32, @splat(multipliers[0]));
+        const new_g_vec = vecs[1] * @as(simd.Vec4f32, @splat(multipliers[1]));
+        const new_b_vec = vecs[2] * @as(simd.Vec4f32, @splat(multipliers[2]));
 
-        // Clamp and convert back to u8
-        const clamped_r = simd.clampVec4F32ToU8(new_r_vec);
-        const clamped_g = simd.clampVec4F32ToU8(new_g_vec);
-        const clamped_b = simd.clampVec4F32ToU8(new_b_vec);
-
-        // Store back (preserve alpha)
-        pixels[i] = img.color.Rgba32{ .r = clamped_r[0], .g = clamped_g[0], .b = clamped_b[0], .a = pixels[i].a };
-        pixels[i + 1] = img.color.Rgba32{ .r = clamped_r[1], .g = clamped_g[1], .b = clamped_b[1], .a = pixels[i + 1].a };
-        pixels[i + 2] = img.color.Rgba32{ .r = clamped_r[2], .g = clamped_g[2], .b = clamped_b[2], .a = pixels[i + 2].a };
-        pixels[i + 3] = img.color.Rgba32{ .r = clamped_r[3], .g = clamped_g[3], .b = clamped_b[3], .a = pixels[i + 3].a };
+        // Clamp and store
+        simd.storePixel4Vec(pixels, i, new_r_vec, new_g_vec, new_b_vec);
     }
 
     // Handle remaining pixels
@@ -663,48 +570,13 @@ pub fn adjustHSL(ctx: *Context, args: anytype) !void {
     // Process in chunks of 4 pixels using SIMD
     var i: usize = 0;
     while (i + 4 <= pixel_count) : (i += 4) {
-        // Load 4 pixels
-        const r_vec: simd.Vec4f32 = [_]f32{
-            @as(f32, @floatFromInt(pixels[i].r)),
-            @as(f32, @floatFromInt(pixels[i + 1].r)),
-            @as(f32, @floatFromInt(pixels[i + 2].r)),
-            @as(f32, @floatFromInt(pixels[i + 3].r)),
-        };
-        const g_vec: simd.Vec4f32 = [_]f32{
-            @as(f32, @floatFromInt(pixels[i].g)),
-            @as(f32, @floatFromInt(pixels[i + 1].g)),
-            @as(f32, @floatFromInt(pixels[i + 2].g)),
-            @as(f32, @floatFromInt(pixels[i + 3].g)),
-        };
-        const b_vec: simd.Vec4f32 = [_]f32{
-            @as(f32, @floatFromInt(pixels[i].b)),
-            @as(f32, @floatFromInt(pixels[i + 1].b)),
-            @as(f32, @floatFromInt(pixels[i + 2].b)),
-            @as(f32, @floatFromInt(pixels[i + 3].b)),
-        };
-
+        const vecs = simd.loadPixel4Vec(pixels, i);
+        
         // Apply SIMD HSL adjustment
-        const result = simd.adjustHSL_SIMD4(r_vec, g_vec, b_vec, hue_shift, saturation_factor, lightness_factor);
-        const new_r_vec = result[0];
-        const new_g_vec = result[1];
-        const new_b_vec = result[2];
-
-        // Clamp and store back (preserve alpha)
-        pixels[i].r = @as(u8, @intFromFloat(std.math.clamp(new_r_vec[0], 0.0, 255.0)));
-        pixels[i].g = @as(u8, @intFromFloat(std.math.clamp(new_g_vec[0], 0.0, 255.0)));
-        pixels[i].b = @as(u8, @intFromFloat(std.math.clamp(new_b_vec[0], 0.0, 255.0)));
-
-        pixels[i + 1].r = @as(u8, @intFromFloat(std.math.clamp(new_r_vec[1], 0.0, 255.0)));
-        pixels[i + 1].g = @as(u8, @intFromFloat(std.math.clamp(new_g_vec[1], 0.0, 255.0)));
-        pixels[i + 1].b = @as(u8, @intFromFloat(std.math.clamp(new_b_vec[1], 0.0, 255.0)));
-
-        pixels[i + 2].r = @as(u8, @intFromFloat(std.math.clamp(new_r_vec[2], 0.0, 255.0)));
-        pixels[i + 2].g = @as(u8, @intFromFloat(std.math.clamp(new_g_vec[2], 0.0, 255.0)));
-        pixels[i + 2].b = @as(u8, @intFromFloat(std.math.clamp(new_b_vec[2], 0.0, 255.0)));
-
-        pixels[i + 3].r = @as(u8, @intFromFloat(std.math.clamp(new_r_vec[3], 0.0, 255.0)));
-        pixels[i + 3].g = @as(u8, @intFromFloat(std.math.clamp(new_g_vec[3], 0.0, 255.0)));
-        pixels[i + 3].b = @as(u8, @intFromFloat(std.math.clamp(new_b_vec[3], 0.0, 255.0)));
+        const result = simd.adjustHSL_SIMD4(vecs[0], vecs[1], vecs[2], hue_shift, saturation_factor, lightness_factor);
+        
+        // Clamp and store
+        simd.storePixel4Vec(pixels, i, result[0], result[1], result[2]);
     }
 
     // Handle remaining pixels with scalar operations

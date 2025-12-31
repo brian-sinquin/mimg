@@ -1,0 +1,10 @@
+---
+.title = "Gallery",
+.description = "Visual showcase of mimg effects",
+.date = @date("2025-01-01T00:00:00"),
+.author = "mimg contributors",
+.layout = "gallery.shtml",
+.draft = false,
+---
+
+Gallery content is dynamically generated from gallery-data.json.

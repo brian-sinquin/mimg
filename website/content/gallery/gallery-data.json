@@ -1,0 +1,57 @@
+{
+  "source_image": "lena.png",
+  "categories": [
+    {
+      "id": "individual",
+      "title": "Individual Modifiers",
+      "description": "Explore each modifier's unique effect",
+      "examples": [
+        { "name": "Invert", "description": "Invert all colors for negative effect", "args": ["invert"] },
+        { "name": "Grayscale", "description": "Convert to grayscale", "args": ["grayscale"] },
+        { "name": "Sepia", "description": "Classic sepia tone effect", "args": ["sepia"] },
+        { "name": "Bright +40", "description": "Increase brightness", "args": ["brightness", "40"] },
+        { "name": "High Contrast", "description": "Boost contrast for dramatic effect", "args": ["contrast", "1.8"] },
+        { "name": "Vibrant Colors", "description": "Boost saturation for vibrant colors", "args": ["saturation", "1.6"] },
+        { "name": "Gamma Correct", "description": "Apply gamma correction", "args": ["gamma", "1.8"] },
+        { "name": "Gaussian Blur", "description": "Soft gaussian blur effect", "args": ["gaussian-blur", "3.0"] },
+        { "name": "Sharp Focus", "description": "Sharpen image details", "args": ["sharpen"] },
+        { "name": "Emboss 3D", "description": "3D emboss effect", "args": ["emboss", "1.5"] },
+        { "name": "Color Emboss", "description": "Emboss with color preservation", "args": ["color-emboss", "1.2"] },
+        { "name": "Soft Glow", "description": "Add ethereal glow effect", "args": ["glow", "0.7", "12"] },
+        { "name": "Vignette", "description": "Dark corners vignette", "args": ["vignette", "0.6"] },
+        { "name": "Posterize", "description": "Reduce to 6 color levels", "args": ["posterize", "6"] },
+        { "name": "Hue Shift", "description": "Shift colors by 90 degrees", "args": ["hue-shift", "90"] },
+        { "name": "Edge Detection", "description": "Detect image edges", "args": ["edge-detect"] },
+        { "name": "Pixelate", "description": "8-bit pixel effect", "args": ["pixelate", "8"] },
+        { "name": "Film Noise", "description": "Add vintage film grain", "args": ["noise", "0.15"] },
+        { "name": "High Exposure", "description": "Overexposed bright effect", "args": ["exposure", "1.2"] },
+        { "name": "Vibrance", "description": "Smart saturation boost", "args": ["vibrance", "0.6"] },
+        { "name": "Equalize", "description": "Histogram equalization", "args": ["equalize"] },
+        { "name": "Blue Tint", "description": "Cool blue colorization", "args": ["colorize", "#6496FF", "0.4"] },
+        { "name": "Oil Painting", "description": "Artistic oil paint effect", "args": ["oil-painting", "3"] },
+        { "name": "Tilt Shift", "description": "Advanced miniature depth of field effect", "args": ["tilt-shift", "5.0", "0.5", "0.08"] },
+        { "name": "Round Corners", "description": "Smooth rounded corners", "args": ["round-corners", "25"] },
+        { "name": "Rotate 30°", "description": "Rotate 30 degrees", "args": ["rotate", "30"] },
+        { "name": "Flip Horizontal", "description": "Mirror horizontally", "args": ["flip", "horizontal"] }
+      ]
+    },
+    {
+      "id": "combinations",
+      "title": "Modifier Combinations",
+      "description": "Powerful multi-modifier effects",
+      "examples": [
+        { "name": "Vintage Portrait", "description": "Sepia tone with a gentle vignette for a classic look", "args": ["sepia", "contrast", "1.1", "vignette", "0.45"] },
+        { "name": "Pop Art", "description": "Bold posterization with punchy color and contrast", "args": ["gaussian-blur", "2.0", "posterize", "5", "edge-enhancement", "0.3", "saturation", "1.6", "contrast", "0.5"] },
+        { "name": "Cyberpunk", "description": "Cool neon tint, soft glow, and crisp edges", "args": ["colorize", "#00A8FF", "0.55", "glow", "0.8", "12", "edge-enhancement", "1.35", "contrast", "1.15", "vignette", "0.15"] },
+        { "name": "Dreamy Portrait", "description": "Soft painterly look with a gentle bloom", "args": ["oil-painting", "3", "glow", "0.35", "12", "exposure", "0.15", "saturation", "1.1", "vignette", "0.25"] },
+        { "name": "Film Noir", "description": "Moody black and white with contrast and vignette", "args": ["grayscale", "contrast", "1.9", "sharpen", "vignette", "0.65", "noise", "0.06"] },
+        { "name": "Artistic Sketch", "description": "Edge outlines with minimal palette", "args": ["edge-detect", "invert", "posterize", "3", "contrast", "1.2"] },
+        { "name": "Neon Glow", "description": "Bright edges with colorful radiance", "args": ["edge-enhancement", "1.3", "glow", "0.55", "12", "saturation", "1.2", "vignette", "0.10"] },
+        { "name": "Solar Dream", "description": "Radiant duotone with soft glow and high vibrance", "args": ["duotone", "#FFD700", "#FF69B4", "glow", "0.5", "10", "vibrance", "0.8", "contrast", "1.2"] },
+        { "name": "Retro Fade", "description": "Muted colors, film grain, and faded vignette for a vintage look", "args": ["posterize", "7", "saturation", "0.7", "noise", "0.12", "vignette", "0.35", "contrast", "0.8"] },
+        { "name": "Arctic Mist", "description": "Cool blue tint, gaussian blur, and crisp edges for frosty effect", "args": ["colorize", "#AEEFFF", "0.4", "gaussian-blur", "2.5", "edge-enhancement", "1.1", "contrast", "1.05"] },
+        { "name": "Nightlife", "description": "Vivid colors, tilt-shift, and high contrast for a dramatic city vibe", "args": ["saturation", "1.7", "tilt-shift", "6.5", "0.5", "0.07", "contrast", "1.3", "vignette", "0.22"] }
+      ]
+    }
+  ]
+}

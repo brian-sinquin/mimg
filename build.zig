@@ -1,83 +1,102 @@
 const std = @import("std");
-const build_exe = @import("build/build_exe.zig");
-const build_gallery = @import("build/build_gallery.zig");
+const gallery_data = @import("src/gallery/gallery_data.zig");
 
-fn createModuleWithZigimg(b: *std.Build, root_source_file: []const u8, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode, include_benchmarks: bool) *std.Build.Module {
-    const module = b.createModule(.{
-        .root_source_file = b.path(root_source_file),
-        .target = target,
-        .optimize = optimize,
-    });
+/// Generate sanitized filename from command args for gallery examples
+fn generateGalleryFilename(allocator: std.mem.Allocator, args: []const []const u8) ![]const u8 {
+    var filename = try std.ArrayList(u8).initCapacity(allocator, 256);
+    defer filename.deinit(allocator);
 
-    const zigimg_dependency = b.dependency("zigimg", .{
-        .target = target,
-        .optimize = optimize,
-    });
-    module.addImport("zigimg", zigimg_dependency.module("zigimg"));
-
-    // Add build options
-    const options = b.addOptions();
-    options.addOption(bool, "include_benchmarks", include_benchmarks);
-    module.addImport("build_options", options.createModule());
-
-    return module;
+    for (args, 0..) |arg, i| {
+        if (i > 0) try filename.append(allocator, '_');
+        for (arg) |char| {
+            switch (char) {
+                '.' => try filename.append(allocator, '_'),
+                '#' => try filename.appendSlice(allocator, "0x"),
+                else => try filename.append(allocator, char),
+            }
+        }
+    }
+    try filename.appendSlice(allocator, "_lena.png");
+    return try filename.toOwnedSlice(allocator);
 }
 
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    // Build options
-    // Gallery is always generated as a build step; no flag required
-    // Tests and benchmarks are always enabled; no flags required
-    const target_name = b.option([]const u8, "target-name", "Target name for binary") orelse "unknown";
-    const enable_lto = b.option(bool, "lto", "Enable Link Time Optimization (slower builds, faster runtime)") orelse false;
-    const strip_symbols = b.option(bool, "strip", "Strip debug symbols (smaller binary)") orelse (optimize != .Debug);
-    const use_static = b.option(bool, "static", "Force static linking") orelse false;
-    const cpu_features = b.option([]const u8, "cpu-features", "CPU features to enable (avx2, sse4_2)") orelse null;
+    // Build main executable
+    const exe = b.addExecutable(.{
+        .name = "mimg",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/main.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+    });
 
-    // Create main executable
-    const exe = build_exe.createExe(b, target, optimize, target_name, enable_lto, strip_symbols, use_static, cpu_features);
+    const zigimg_dep = b.dependency("zigimg", .{ .target = target, .optimize = optimize });
+    exe.root_module.addImport("zigimg", zigimg_dep.module("zigimg"));
+
+    const options = b.addOptions();
+    options.addOption([]const u8, "version", "0.1.4");
+    options.addOption(bool, "include_benchmarks", false);
+    exe.root_module.addImport("build_options", options.createModule());
+
+    b.installArtifact(exe);
 
     // Run step
-    const run_step = b.step("run", "Run the app");
     const run_cmd = b.addRunArtifact(exe);
-    run_step.dependOn(&run_cmd.step);
-    // Don't depend on global install to avoid building unrelated artifacts
+    if (b.args) |args| run_cmd.addArgs(args);
+    b.step("run", "Run the app").dependOn(&run_cmd.step);
 
-    if (b.args) |args| {
-        run_cmd.addArgs(args);
-    }
+    // Website generation
+    const website_step = b.step("website", "Generate website with gallery");
+    setupWebsiteGeneration(b, exe, website_step);
 
-    // Gallery generation (always enabled, not an executable)
-    _ = build_gallery.setupGallery(b, target, optimize, exe);
+    // Serve website
+    const serve_step = b.step("serve", "Serve website locally on port 8080");
+    const serve_cmd = b.addSystemCommand(&.{ "python", "-m", "http.server", "8080", "--directory", "website/zig-out" });
+    serve_step.dependOn(website_step);
+    serve_step.dependOn(&serve_cmd.step);
 
-    // Always define test step
-    const exe_tests = b.addTest(.{
-        .root_module = exe.root_module,
-    });
-    // Add separate test for our test file with proper dependencies
-    const unit_test_module = createModuleWithZigimg(b, "src/main.zig", target, optimize, false);
-    const unit_tests = b.addTest(.{
-        .root_module = unit_test_module,
-    });
-    const test_step = b.step("test", "Run tests");
-    test_step.dependOn(&exe_tests.step);
-    test_step.dependOn(&unit_tests.step);
+    // Tests
+    const unit_tests = b.addTest(.{ .root_module = exe.root_module });
+    b.step("test", "Run tests").dependOn(&unit_tests.step);
+}
 
-    // ...existing code...
-
-    // ...existing code...
-
-    // Clean step
-    const clean_step = b.step("clean", "Clean build artifacts");
-    clean_step.makeFn = struct {
-        pub fn make(_: *std.Build.Step, options: std.Build.Step.MakeOptions) !void {
-            _ = options;
-            const fs = std.fs;
-            const cwd = fs.cwd();
-            _ = cwd.deleteTree("zig-out") catch {};
-            _ = cwd.deleteTree("zig-cache") catch {};
+fn setupWebsiteGeneration(b: *std.Build, exe: *std.Build.Step.Compile, website_step: *std.Build.Step) void {
+    // Clean and create gallery directory
+    const cleanup = b.step("cleanup_website_gallery", "Clean website gallery");
+    cleanup.makeFn = struct {
+        fn make(_: *std.Build.Step, _: std.Build.Step.MakeOptions) !void {
+            const cwd = std.fs.cwd();
+            _ = cwd.deleteTree("website/static/gallery") catch {};
+            try cwd.makePath("website/static/gallery");
         }
     }.make;
+    website_step.dependOn(cleanup);
+
+    // Generate gallery images
+    const gen_step = b.step("gen_website_images", "Generate website gallery images");
+    inline for (gallery_data.individual_modifiers ++ gallery_data.combinations) |example| {
+        const cmd = b.addRunArtifact(exe);
+        cmd.addFileArg(b.path("lena.png"));
+        for (example.args) |arg| cmd.addArg(arg);
+        const filename = generateGalleryFilename(b.allocator, example.args) catch @panic("filename generation failed");
+        cmd.addArgs(&.{ "--output-dir", "website/static/gallery", "--output", filename });
+        gen_step.dependOn(&cmd.step);
+    }
+    gen_step.dependOn(cleanup);
+
+    // Build Zine website directly
+    const zine_dep = b.dependency("zine", .{ .optimize = .ReleaseFast });
+    const zine_exe = zine_dep.artifact("zine");
+
+    const zine_cmd = b.addRunArtifact(zine_exe);
+    zine_cmd.addArgs(&.{ "release", "--force", "--output" });
+    zine_cmd.addDirectoryArg(b.path("website/zig-out"));
+    zine_cmd.setCwd(b.path("website"));
+    zine_cmd.step.dependOn(gen_step);
+
+    website_step.dependOn(&zine_cmd.step);
 }
