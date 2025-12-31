@@ -24,14 +24,8 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    // Get release version from environment or use "dev"
-    const release_version = std.process.getEnvVarOwned(b.allocator, "RELEASE_VERSION") catch "dev";
-
-    // Determine executable name based on whether we're in release mode
-    const exe_name = if (std.mem.eql(u8, release_version, "dev"))
-        "mimg"
-    else
-        b.fmt("mimg-v{s}-{s}", .{ release_version, @tagName(target.result.os.tag) });
+    // Always use simple name "mimg" for the executable
+    const exe_name = "mimg";
 
     // Build main executable
     const exe = b.addExecutable(.{
@@ -47,7 +41,7 @@ pub fn build(b: *std.Build) void {
     exe.root_module.addImport("zigimg", zigimg_dep.module("zigimg"));
 
     const options = b.addOptions();
-    options.addOption([]const u8, "version", "0.1.4");
+    options.addOption([]const u8, "version", "0.1.5");
     options.addOption(bool, "include_benchmarks", false);
     exe.root_module.addImport("build_options", options.createModule());
 

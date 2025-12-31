@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><span :text="$page.title"></span> - mimg</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🎨%3C/text%3E%3C/svg%3E">
+    <title :text="$page.title.suffix(' - mimg')"></title>
     <link rel="stylesheet" href="/style.css">
 </head>
 <body>
@@ -12,10 +13,11 @@
             <h1>mimg</h1>
             <ul>
                 <li><a href="/">Home</a></li>
+                <li><a href="/getting-started/">Getting Started</a></li>
+                <li><a href="/features/">Features</a></li>
                 <li><a href="/gallery/">Gallery</a></li>
-                <li><a href="/modifiers/">Modifiers</a></li>
-                <li><a href="/installation/">Install</a></li>
-                <li><a href="/examples/">Examples</a></li>
+                <li><a href="/api/">API</a></li>
+                <li><a href="/download/">Download</a></li>
                 <li><a href="https://github.com/brian-sinquin/mimg">GitHub</a></li>
             </ul>
         </div>

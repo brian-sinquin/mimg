@@ -278,6 +278,43 @@ article a:hover {
   border-bottom-color: var(--primary);
 }
 
+/* Download buttons - style links that start with download emoji */
+article a[href*="releases/latest/download"],
+article a[href*="github.com"][href*="/releases"] {
+  display: inline-block;
+  padding: 0.75rem 1.5rem;
+  margin: 0.5rem 0.5rem 0.5rem 0;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  color: white !important;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  text-align: center;
+  transition: all 0.3s ease;
+  box-shadow: var(--shadow);
+  border-bottom: none !important;
+}
+
+article a[href*="releases/latest/download"]:hover,
+article a[href*="github.com"][href*="/releases"]:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+  border-bottom: none !important;
+}
+
+/* Specific styling for platform download buttons */
+article a[href*="windows"] {
+  background: linear-gradient(135deg, #0078d4 0%, #005a9e 100%);
+}
+
+article a[href*="linux"] {
+  background: linear-gradient(135deg, #f7931e 0%, #d87209 100%);
+}
+
+article a[href*="macos"] {
+  background: linear-gradient(135deg, #555 0%, #333 100%);
+}
+
 article blockquote {
   border-left: 4px solid var(--primary);
   padding-left: 1.5rem;
@@ -304,7 +341,7 @@ article blockquote {
 
 .gallery-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 1.25rem;
 }
 
@@ -564,6 +601,79 @@ footer a:hover {
   text-decoration: underline;
 }
 
+/* Buttons */
+.cta-buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin: 2rem 0;
+  flex-wrap: wrap;
+}
+
+.btn {
+  display: inline-block;
+  padding: 0.875rem 2rem;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  color: white;
+  box-shadow: var(--shadow);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.btn-secondary {
+  background: white;
+  color: var(--primary);
+  border: 2px solid var(--primary);
+}
+
+.btn-secondary:hover {
+  background: var(--primary);
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+}
+
+/* Gallery Preview */
+.gallery-preview {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin: 2rem 0;
+  max-width: 900px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.gallery-preview a {
+  display: contents;
+}
+
+.gallery-preview img {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.gallery-preview img:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+}
+
 @media (max-width: 768px) {
   nav ul {
     gap: 1rem;
@@ -580,5 +690,14 @@ footer a:hover {
 
   .gallery-grid {
     grid-template-columns: 1fr;
+  }
+
+  .cta-buttons {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .btn {
+    text-align: center;
   }
 }

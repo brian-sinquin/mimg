@@ -1,0 +1,223 @@
+---
+.title = "Download",
+.description = "Download the latest mimg releases for Windows, Linux, and macOS",
+.date = @date("2025-01-01T00:00:00"),
+.author = "mimg contributors",
+.layout = "default.shtml",
+.draft = false,
+---
+
+# Download mimg
+
+Get the latest version of mimg for your platform. Single binary, no dependencies required.
+
+## Quick Download
+
+Choose your platform and download the latest release:
+
+**Windows (x64)**
+[⬇ Download for Windows](https://github.com/brian-sinquin/mimg/releases/latest/download/mimg-windows-x86_64.zip)
+
+**Linux (x64)**
+[⬇ Download for Linux](https://github.com/brian-sinquin/mimg/releases/latest/download/mimg-linux-x86_64.tar.gz)
+
+**macOS (ARM64)**
+[⬇ Download for macOS (Apple Silicon)](https://github.com/brian-sinquin/mimg/releases/latest/download/mimg-macos-aarch64.tar.gz)
+
+**macOS (x64)**
+[⬇ Download for macOS (Intel)](https://github.com/brian-sinquin/mimg/releases/latest/download/mimg-macos-x86_64.tar.gz)
+
+[View all releases on GitHub →](https://github.com/brian-sinquin/mimg/releases)
+
+---
+
+## Installation Instructions
+
+### Windows
+
+**Requirements**: Windows 10 or later
+
+1. Download [mimg-windows-x86_64.zip](https://github.com/brian-sinquin/mimg/releases/latest/download/mimg-windows-x86_64.zip)
+2. Extract the ZIP file to a folder (e.g., `C:\Program Files\mimg`)
+3. Add the folder to your System PATH
+4. Open a new terminal and run `mimg --help`
+
+**Quick install with PowerShell**:
+```bash
+Invoke-WebRequest -Uri "https://github.com/brian-sinquin/mimg/releases/latest/download/mimg-windows-x86_64.zip" -OutFile "mimg.zip"
+Expand-Archive -Path "mimg.zip" -DestinationPath "C:\Program Files\mimg"
+```
+
+### Linux
+
+**Requirements**: Linux kernel 5.4 or later
+
+1. Download [mimg-linux-x86_64.tar.gz](https://github.com/brian-sinquin/mimg/releases/latest/download/mimg-linux-x86_64.tar.gz)
+2. Extract and install:
+
+```bash
+# Download and install
+curl -L https://github.com/brian-sinquin/mimg/releases/latest/download/mimg-linux-x86_64.tar.gz | tar xz
+sudo mv mimg /usr/local/bin/
+sudo chmod +x /usr/local/bin/mimg
+```
+
+**Verify installation**:
+```bash
+mimg --help
+```
+
+### macOS
+
+**Requirements**: macOS 11 (Big Sur) or later
+
+**For Apple Silicon (M1/M2/M3)**:
+```bash
+curl -L https://github.com/brian-sinquin/mimg/releases/latest/download/mimg-macos-aarch64.tar.gz | tar xz
+sudo mv mimg /usr/local/bin/
+sudo chmod +x /usr/local/bin/mimg
+```
+
+**For Intel Macs**:
+```bash
+curl -L https://github.com/brian-sinquin/mimg/releases/latest/download/mimg-macos-x86_64.tar.gz | tar xz
+sudo mv mimg /usr/local/bin/
+sudo chmod +x /usr/local/bin/mimg
+```
+
+**Note**: On first run, you may need to allow the app in System Preferences → Security & Privacy.
+
+**Verify installation**:
+```bash
+mimg --help
+```
+
+## Build from Source
+
+### Requirements
+
+- **Zig 0.15.1 or later** - [Download Zig](https://ziglang.org/download/)
+
+### Build Steps
+
+```bash
+# Clone the repository
+git clone https://github.com/brian-sinquin/mimg.git
+cd mimg
+
+# Build the project
+zig build
+
+# The binary will be in zig-out/bin/mimg
+./zig-out/bin/mimg --help
+```
+
+### Install Locally
+
+```bash
+# After building, install to your system
+sudo cp zig-out/bin/mimg /usr/local/bin/
+```
+
+Or on Windows:
+```bash
+copy zig-out\bin\mimg.exe C:\Windows\System32\
+```
+
+### Development Build
+
+```bash
+# Build with optimizations
+zig build -Doptimize=ReleaseFast
+
+# Run tests
+zig build test
+
+# Generate example gallery
+zig build gallery
+```
+
+## Docker Image
+
+Run mimg in a container without installation:
+
+```bash
+# Pull the image
+docker pull ghcr.io/brian-sinquin/mimg:latest
+
+# Process an image
+docker run --rm -v $(pwd):/work ghcr.io/brian-sinquin/mimg:latest \
+  mimg /work/input.png brightness 20 -o /work/output.png
+```
+
+## Package Managers
+
+Coming soon! We're working on adding mimg to popular package managers.
+
+### Homebrew (macOS/Linux)
+```bash
+# Coming soon
+brew install mimg
+```
+
+### Chocolatey (Windows)
+```bash
+# Coming soon
+choco install mimg
+```
+
+### Scoop (Windows)
+```bash
+# Coming soon
+scoop install mimg
+```
+
+## Verify Your Installation
+
+After installation, verify everything works:
+
+```bash
+# Check version
+mimg --help
+
+# Process a test image
+mimg test.png grayscale -o output.png
+```
+
+## Checksums
+
+Verify download integrity with SHA256 checksums:
+
+| Platform | SHA256 |
+|----------|--------|
+| Windows x64 | `[checksum-will-be-here]` |
+| Linux x64 | `[checksum-will-be-here]` |
+| macOS Universal | `[checksum-will-be-here]` |
+
+## Release Notes
+
+### v0.1.0 (January 1, 2025)
+
+- Initial release
+- 42+ image modifiers
+- SIMD-optimized processing
+- Support for PNG, JPEG, BMP, TGA, QOI, PPM, PGM, PAM formats
+- Preset system for reusable modifier chains
+- Batch processing support
+
+[View all releases on GitHub →](https://github.com/brian-sinquin/mimg/releases)
+
+## Next Steps
+
+Once installed:
+
+1. [Get Started](/getting-started/) - Learn the basics
+2. [View Features](/features/) - Explore all modifiers
+3. [Browse Gallery](/gallery/) - See examples
+4. [Read API Docs](/api/) - Use as a library
+
+## Need Help?
+
+- [Troubleshooting Guide](/troubleshooting/)
+- [GitHub Issues](https://github.com/brian-sinquin/mimg/issues)
+- [GitHub Discussions](https://github.com/brian-sinquin/mimg/discussions)

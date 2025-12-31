@@ -1,6 +1,15 @@
-# Library API
+---
+.title = "API Reference",
+.description = "Using mimg as a library in your Zig projects - complete API documentation",
+.date = @date("2025-01-01T00:00:00"),
+.author = "mimg contributors",
+.layout = "default.shtml",
+.draft = false,
+---
 
-mimg can be used as a Zig library for programmatic image processing. This guide covers the API for integrating mimg into your Zig applications.
+# API Reference
+
+mimg can be used as a Zig library for programmatic image processing. This guide covers the complete API for integrating mimg into your Zig applications.
 
 ## Setup
 
@@ -433,7 +442,6 @@ std.debug.print("Processing took: {d:.2}ms\n", .{duration_ms});
 
 ## Next Steps
 
-- [Installation](installation.md) - Set up mimg for development
-- [Examples](examples.md) - More integration examples
-- [Troubleshooting](troubleshooting.md) - Debug library usage issues</content>
-<parameter name="filePath">c:\Users\brian\Documents\GitHub\mimg\docs\library.md
+- [Download](/download/) - Get mimg for your platform
+- [Getting Started](/getting-started/) - Learn the basics
+- [Troubleshooting](/troubleshooting/) - Debug library usage issues
