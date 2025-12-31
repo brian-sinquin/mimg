@@ -20,6 +20,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          lfs: false
 
       - name: Setup Zig
         uses: goto-bus-stop/setup-zig@v2
