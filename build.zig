@@ -44,7 +44,7 @@ pub fn build(b: *std.Build) void {
     exe.root_module.addImport("zigimg", zigimg_dep.module("zigimg"));
 
     const options = b.addOptions();
-    options.addOption([]const u8, "version", "0.1.4");
+    options.addOption([]const u8, "version", "0.1.5");
     options.addOption(bool, "include_benchmarks", false);
     exe.root_module.addImport("build_options", options.createModule());
 

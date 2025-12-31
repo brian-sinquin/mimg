@@ -1,6 +1,6 @@
 .{
     .name = .mimg,
-    .version = "0.1.4",
+    .version = "0.1.5",
     .dependencies = .{
         .zigimg = .{
             .url = "https://github.com/zigimg/zigimg/archive/master.tar.gz",
