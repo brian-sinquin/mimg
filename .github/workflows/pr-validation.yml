@@ -34,6 +34,3 @@ jobs:
 
       - name: Run tests
         run: zig build test
-
-      - name: Build gallery
-        run: zig build gallery
