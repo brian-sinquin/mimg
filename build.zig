@@ -24,9 +24,6 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    // Get release version from environment or use "dev"
-    const release_version = std.process.getEnvVarOwned(b.allocator, "RELEASE_VERSION") catch "dev";
-
     // Always use simple name "mimg" for the executable
     const exe_name = "mimg";
 
