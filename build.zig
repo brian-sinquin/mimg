@@ -24,9 +24,18 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
+    // Get release version from environment or use "dev"
+    const release_version = std.process.getEnvVarOwned(b.allocator, "RELEASE_VERSION") catch "dev";
+    
+    // Determine executable name based on whether we're in release mode
+    const exe_name = if (std.mem.eql(u8, release_version, "dev"))
+        "mimg"
+    else
+        b.fmt("mimg-v{s}-{s}", .{ release_version, @tagName(target.result.os.tag) });
+
     // Build main executable
     const exe = b.addExecutable(.{
-        .name = "mimg",
+        .name = exe_name,
         .root_module = b.createModule(.{
             .root_source_file = b.path("src/main.zig"),
             .target = target,
@@ -38,7 +47,7 @@ pub fn build(b: *std.Build) void {
     exe.root_module.addImport("zigimg", zigimg_dep.module("zigimg"));
 
     const options = b.addOptions();
-    options.addOption([]const u8, "version", "0.1.4");
+    options.addOption([]const u8, "version", b.graph.zon.version);
     options.addOption(bool, "include_benchmarks", false);
     exe.root_module.addImport("build_options", options.createModule());
 
@@ -60,8 +69,19 @@ pub fn build(b: *std.Build) void {
     serve_step.dependOn(&serve_cmd.step);
 
     // Tests
-    const unit_tests = b.addTest(.{ .root_module = exe.root_module });
-    b.step("test", "Run tests").dependOn(&unit_tests.step);
+    const unit_tests = b.addTest(.{
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/main.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+    });
+    unit_tests.root_module.addImport("zigimg", zigimg_dep.module("zigimg"));
+    unit_tests.root_module.addImport("build_options", options.createModule());
+
+    const run_tests = b.addRunArtifact(unit_tests);
+    const test_step = b.step("test", "Run unit tests");
+    test_step.dependOn(&run_tests.step);
 }
 
 fn setupWebsiteGeneration(b: *std.Build, exe: *std.Build.Step.Compile, website_step: *std.Build.Step) void {
