@@ -1,0 +1,138 @@
+---
+.title = "Getting Started",
+.description = "Quick start guide for mimg - learn the basics in minutes",
+.date = @date("2025-01-01T00:00:00"),
+.author = "mimg contributors",
+.layout = "default.shtml",
+.draft = false,
+---
+
+# Getting Started with mimg
+
+**mimg** is a blazing-fast command-line image processing tool built with Zig. Get up and running in minutes!
+
+## Quick Start
+
+The basic syntax is simple:
+
+```bash
+mimg input.png [modifiers...] -o output.png
+```
+
+### Your First Image
+
+Let's brighten an image:
+
+```bash
+mimg photo.png brightness 30 -o brighter.png
+```
+
+### Chaining Effects
+
+The real power comes from chaining multiple modifiers:
+
+```bash
+mimg photo.png brightness 20 contrast 1.3 sharpen -o enhanced.png
+```
+
+Modifiers are applied left-to-right in the order you specify.
+
+## Common Use Cases
+
+### Enhance a Photo
+
+```bash
+mimg portrait.jpg contrast 1.2 vibrance 0.3 sharpen -o enhanced.jpg
+```
+
+### Create Vintage Effect
+
+```bash
+mimg photo.png sepia vignette 0.5 noise 0.05 -o vintage.png
+```
+
+### Simple Resize and Crop
+
+```bash
+mimg large.png resize 800 600 crop 50 50 700 500 -o result.png
+```
+
+### Apply Artistic Filter
+
+```bash
+mimg photo.jpg oil-painting 4 posterize 10 -o artistic.jpg
+```
+
+## Understanding Modifiers
+
+Modifiers fall into three main categories:
+
+- **Color Adjustments**: Change brightness, contrast, saturation, hue, etc.
+- **Filters & Effects**: Apply blur, sharpen, emboss, vignette, and more
+- **Transforms**: Resize, crop, rotate, and flip images
+
+[View all 42+ modifiers →](/features/)
+
+## Command Options
+
+| Option | Description |
+|--------|-------------|
+| `-o <file>` | Output filename |
+| `-d <dir>` | Output directory for batch processing |
+| `-v` | Verbose output with timing information |
+| `--preset <file>` | Load modifier chain from preset file |
+| `--help` | Show help message |
+
+## Batch Processing
+
+Process multiple images at once using wildcards:
+
+```bash
+# Apply same effects to all JPGs in a folder
+mimg *.jpg grayscale contrast 1.2 -d output/
+```
+
+All processed images will be saved to the `output/` directory with their original names.
+
+## Using Presets
+
+Save your favorite modifier chains in preset files:
+
+**vintage.preset**:
+```
+sepia
+vignette 0.5
+noise 0.05
+contrast 0.9
+```
+
+Apply the preset:
+
+```bash
+mimg photo.jpg --preset vintage.preset -o output.jpg
+```
+
+You can also chain presets with other modifiers:
+
+```bash
+mimg photo.jpg --preset base.preset brightness 10 -o output.jpg
+```
+
+## Tips & Best Practices
+
+1. **Order Matters**: Apply modifiers in logical order (e.g., color corrections before artistic effects)
+2. **Start Subtle**: Begin with small values and increase gradually
+3. **Preview First**: Test on a single image before batch processing
+4. **Save Presets**: Create presets for your most-used combinations
+5. **Use Verbose**: Add `-v` to see processing time and performance info
+
+## What's Next?
+
+- [Download mimg](/download/) - Get the latest release for your platform
+- [Explore Features](/features/) - Learn about all available modifiers
+- [View Gallery](/gallery/) - See 38 examples of what mimg can do
+- [API Reference](/api/) - Use mimg as a library in your Zig projects
+
+## Need Help?
+
+Having issues? Check our [troubleshooting guide](/troubleshooting/) or [report a bug on GitHub](https://github.com/brian-sinquin/mimg/issues).

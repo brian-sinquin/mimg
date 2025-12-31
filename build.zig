@@ -27,11 +27,8 @@ pub fn build(b: *std.Build) void {
     // Get release version from environment or use "dev"
     const release_version = std.process.getEnvVarOwned(b.allocator, "RELEASE_VERSION") catch "dev";
 
-    // Determine executable name based on whether we're in release mode
-    const exe_name = if (std.mem.eql(u8, release_version, "dev"))
-        "mimg"
-    else
-        b.fmt("mimg-v{s}-{s}", .{ release_version, @tagName(target.result.os.tag) });
+    // Always use simple name "mimg" for the executable
+    const exe_name = "mimg";
 
     // Build main executable
     const exe = b.addExecutable(.{

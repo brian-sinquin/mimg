@@ -9,110 +9,118 @@
 
 # mimg
 
-**mimg** is a high-performance command-line image processing tool written in Zig.
+**mimg** is a blazing-fast command-line image processing tool written in Zig.
+
+Transform images with simple, chainable commands - no complex GUIs or dependencies required.
 
 ## Quick Start
 
-Process images with simple commands:
-
 ```bash
-mimg input.png brightness 20 contrast 1.5 -o output.png
+# Basic adjustment
+mimg photo.png brightness 20 contrast 1.3 -o enhanced.png
+
+# Vintage effect
+mimg photo.png sepia vignette 0.5 noise 0.08 -o vintage.png
+
+# Professional color grading
+mimg portrait.jpg vibrance 0.3 exposure 0.2 temperature 10 sharpen -o graded.jpg
 ```
 
-Chain multiple effects for powerful transformations:
+## Why mimg?
 
-```bash
-mimg photo.png sepia vignette 0.5 noise 0.1 -o vintage.png
-```
+- ⚡ **Blazing Fast** - SIMD-optimized operations process images in milliseconds
+- 🎨 **42+ Modifiers** - Color adjustments, filters, effects, and transforms
+- 🔗 **Chainable** - Combine effects for unlimited creative possibilities
+- 📦 **Zero Dependencies** - Single binary, works everywhere
+- 🚀 **Simple & Powerful** - Intuitive CLI, professional results
 
-## Features
+## Get Started
 
-- ⚡ **Fast**: SIMD-optimized operations for maximum performance
-- 🎨 **Powerful**: 42+ modifiers with chainable effects
-- 🔧 **Simple**: Intuitive command-line interface
-- 📦 **Portable**: Single binary, no dependencies
+[Download Now](/download/) | [Quick Start Guide](/getting-started/)
 
-## Available Modifiers
-
-mimg supports 42+ image modifiers organized into categories:
+## What Can You Do?
 
 ### Color Adjustments
-- `brightness`, `contrast`, `saturation`, `gamma`, `exposure`
-- `hue-shift`, `vibrance`, `equalize`, `colorize`
-- `grayscale`, `sepia`, `invert`, `duotone`
+Fine-tune brightness, contrast, saturation, exposure, temperature, and more. Professional color grading in seconds.
 
-### Filters & Effects
-- `gaussian-blur`, `sharpen`, `edge-detect`, `edge-enhancement`
-- `emboss`, `color-emboss`, `glow`, `vignette`
-- `noise`, `posterize`, `pixelate`, `oil-painting`
+[Explore Color Tools →](/features/)
 
-### Transformations
-- `rotate`, `flip`, `resize`, `crop`
-- `round-corners`, `tilt-shift`
+### Creative Filters
+Apply blur, sharpen, emboss, oil painting, pixelate, vignette, glow, and artistic effects.
 
-### Channel Operations
-- `adjust-channels`, `channel-swap`, `split-channels`
+[See All Filters →](/features/)
 
-## Installation
+### Transform Images
+Resize, crop, rotate, flip - geometric transformations made simple.
 
-### Build from Source
+[View Transforms →](/features/)
 
-Requirements: Zig 0.15.2 or later
+## See It In Action
 
+[Browse 38+ Examples in Gallery →](/gallery/)
+
+## Example Commands
+
+**Portrait Enhancement:**
 ```bash
-git clone https://github.com/yourusername/mimg.git
-cd mimg
-zig build
-./zig-out/bin/mimg --help
+mimg portrait.jpg vibrance 0.3 contrast 1.1 sharpen -o enhanced.jpg
 ```
 
-### Usage Examples
-
-**Basic Color Adjustment:**
+**Instagram-Style Filter:**
 ```bash
-mimg photo.png brightness 30 saturation 1.2 -o enhanced.png
+mimg photo.jpg temperature 15 vibrance 0.4 vignette 0.3 -o filtered.jpg
 ```
 
-**Artistic Effects:**
+**Dramatic Black & White:**
 ```bash
-mimg landscape.png oil-painting 3 glow 0.4 10 -o artistic.png
+mimg landscape.jpg grayscale contrast 1.5 vignette 0.4 -o dramatic.jpg
 ```
 
-**Vintage Look:**
+**Artistic Oil Painting:**
 ```bash
-mimg portrait.png sepia contrast 1.1 vignette 0.5 -o vintage.png
+mimg photo.jpg oil-painting 5 posterize 8 -o artistic.jpg
 ```
 
-**Cyberpunk Style:**
-```bash
-mimg city.png colorize "#00A8FF" 0.5 glow 0.8 12 edge-enhancement 1.3 -o cyberpunk.png
+## Use as a Library
+
+mimg isn't just a CLI - use it programmatically in your Zig projects:
+
+```zig
+var ctx = mimg.types.Context.init(allocator);
+defer ctx.deinit();
+
+try mimg.basic.adjustBrightness(&ctx, .{30});
+try mimg.basic.adjustContrast(&ctx, .{1.2});
+try mimg.filters.sharpenImage(&ctx, .{});
 ```
 
-## Gallery
-
-Explore [38 different effects and combinations](/gallery/) in our interactive gallery, showcasing the full power of mimg on the classic Lena test image.
+[Read API Documentation →](/api/)
 
 ## Performance
 
-mimg leverages SIMD instructions and efficient memory management for high-performance image processing:
+SIMD-optimized operations deliver exceptional speed:
 
-- Batch processing support
-- Multi-threaded operations
-- Zero-copy architecture where possible
-- Optimized for modern CPUs
+- Small images (< 1MB): **< 100ms**
+- Medium images (1-5MB): **< 500ms**
+- Large images (5-20MB): **< 2s**
 
-## File Format Support
+Process thousands of images in minutes with batch mode.
 
-- **Input**: PNG, JPEG, BMP, GIF, TIFF
-- **Output**: PNG, JPEG, BMP
+## Supported Formats
 
-## Contributing
+**Input & Output**: PNG, JPEG, BMP, TGA, QOI, PPM, PGM, PAM
 
-Contributions welcome! Check out the [GitHub repository](https://github.com/yourusername/mimg) to:
-- Report bugs
-- Suggest features
-- Submit pull requests
+Format is automatically detected from file extension.
 
-## License
+## Open Source
 
-MIT License - see LICENSE file for details
+mimg is free and open source under the MIT License.
+
+- 🐛 [Report Issues](https://github.com/brian-sinquin/mimg/issues)
+- 💡 [Request Features](https://github.com/brian-sinquin/mimg/discussions)
+- 🤝 [Contribute](https://github.com/brian-sinquin/mimg)
+- ⭐ [Star on GitHub](https://github.com/brian-sinquin/mimg)
+
+## Ready to Get Started?
+
+[Download mimg](/download/) | [Read Quick Start](/getting-started/) | [View All Features](/features/)

@@ -6,8 +6,8 @@ on:
       - "v*.*.*"
 
 permissions:
-    contents: write
-    
+  contents: write
+
 jobs:
   publish-github:
     name: Publish on GitHub
@@ -15,12 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        TARGET:
-          [
-            x86_64-linux,
-            x86_64-macos,
-            x86_64-windows,
-          ]
+        TARGET: [x86_64-linux, x86_64-macos, x86_64-windows]
 
     steps:
       - name: Checkout the repository
@@ -37,12 +32,25 @@ jobs:
           version: 0.15.1
 
       - name: Build
-        run: zig build -Dtarget=${{ matrix.TARGET }} -Dtarget-name=${{ matrix.TARGET }} -Doptimize=ReleaseSafe --summary all
+        run: zig build -Dtarget=${{ matrix.TARGET }} -Doptimize=ReleaseSafe --summary all
+
+      - name: Package binary (Linux/macOS)
+        if: matrix.TARGET != 'x86_64-windows'
+        run: |
+          cd zig-out/bin
+          tar -czf mimg-${{ matrix.TARGET }}.tar.gz mimg
+          mv mimg-${{ matrix.TARGET }}.tar.gz ../..
+
+      - name: Package binary (Windows)
+        if: matrix.TARGET == 'x86_64-windows'
+        run: |
+          cd zig-out/bin
+          7z a ../../mimg-${{ matrix.TARGET }}.zip mimg.exe
 
       - name: Upload the binary
         uses: svenstaro/upload-release-action@v2
         with:
-          file: zig-out/bin/mimg*
+          file: mimg-${{ matrix.TARGET }}.*
           file_glob: true
           overwrite: true
           tag: ${{ github.ref }}

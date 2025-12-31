@@ -1,0 +1,225 @@
+---
+.title = "Features & Modifiers",
+.description = "Complete reference of all 42+ image modifiers available in mimg",
+.date = @date("2025-01-01T00:00:00"),
+.author = "mimg contributors",
+.layout = "default.shtml",
+.draft = false,
+---
+
+# Features & Modifiers
+
+mimg provides 42+ powerful image modifiers organized into three categories. All modifiers can be chained together for complex image processing pipelines.
+
+## Color Adjustments (21 modifiers)
+
+Transform colors, adjust brightness, contrast, and apply color grading effects.
+
+| Modifier | Usage | Description |
+|----------|-------|-------------|
+| `brightness` | `brightness <value>` | Adjust brightness (-128 to 127) |
+| `contrast` | `contrast <factor>` | Adjust contrast (0.0 to 3.0) |
+| `saturation` | `saturation <factor>` | Adjust color saturation (0.0 to 3.0) |
+| `gamma` | `gamma <value>` | Apply gamma correction (0.1 to 3.0) |
+| `vibrance` | `vibrance <factor>` | Adjust vibrance - smart saturation that preserves skin tones (0.0 to 2.0) |
+| `exposure` | `exposure <value>` | Adjust exposure (-2.0 to 2.0) |
+| `hue-shift` | `hue-shift <degrees>` | Shift hue around color wheel (-180 to 180) |
+| `adjust-hsl` | `adjust-hsl <hue> <sat> <light>` | Adjust hue, saturation, and lightness separately |
+| `adjust-channels` | `adjust-channels <red> <green> <blue>` | Adjust RGB channel intensities independently |
+| `colorize` | `colorize <#RRGGBB> <intensity>` | Tint image with hex color (e.g., #FF5733) |
+| `duotone` | `duotone <#dark> <#light>` | Apply Spotify-style duotone effect using two hex colors |
+| `posterize` | `posterize <levels>` | Reduce color levels for poster effect (2-256) |
+| `threshold` | `threshold <value>` | Convert to black/white based on luminance (0-255) |
+| `solarize` | `solarize <threshold>` | Invert colors above threshold for solarization effect (0-255) |
+| `equalize` | `equalize` | Apply histogram equalization for better contrast distribution |
+| `equalize-area` | `equalize-area <x> <y> <w> <h>` | Apply histogram equalization to specific region |
+| `grayscale` | `grayscale` | Convert to grayscale using luminance-weighted conversion |
+| `sepia` | `sepia` | Apply classic sepia tone for vintage look |
+| `invert` | `invert` | Invert all colors (negative effect) |
+| `temperature` | `temperature <value>` | Adjust color temperature (-100 to 100, negative=cooler, positive=warmer) |
+| `tint` | `tint <value>` | Adjust green/magenta tint (-100 to 100) |
+
+### Color Examples
+
+```bash
+# Professional color grading
+mimg photo.jpg vibrance 0.3 exposure 0.2 contrast 1.1 temperature 10 -o graded.jpg
+
+# Creative duotone
+mimg photo.jpg grayscale duotone #FF6B6B #4ECDC4 -o duotone.jpg
+
+# High contrast black and white
+mimg photo.jpg grayscale contrast 1.5 equalize -o bw.jpg
+
+# Vintage warm tone
+mimg photo.jpg sepia temperature 20 vignette 0.3 -o vintage.jpg
+```
+
+## Filters & Effects (15 modifiers)
+
+Apply blur, sharpen, artistic effects, and creative filters.
+
+| Modifier | Usage | Description |
+|----------|-------|-------------|
+| `blur` | `blur <size>` | Fast box blur (kernel size, odd numbers recommended) |
+| `gaussian-blur` | `gaussian-blur <sigma>` | High-quality Gaussian blur (0.5 to 10.0) |
+| `sharpen` | `sharpen` | Sharpen image details using unsharp mask |
+| `emboss` | `emboss <strength>` | 3D emboss effect (0.0 to 2.0) |
+| `color-emboss` | `color-emboss <strength>` | Emboss with color preservation (0.0 to 2.0) |
+| `edge-detect` | `edge-detect` | Detect edges using Sobel operator |
+| `edge-enhancement` | `edge-enhancement <strength>` | Enhance edges while preserving colors (0.0 to 2.0) |
+| `median-filter` | `median-filter <size>` | Median filter for noise reduction (odd kernel size, 3-11) |
+| `denoise` | `denoise <strength>` | Advanced noise removal using bilateral filter (1-10) |
+| `pixelate` | `pixelate <size>` | Apply mosaic/pixelation effect (2-50) |
+| `oil-painting` | `oil-painting <radius>` | Artistic oil painting effect (1-10) |
+| `vignette` | `vignette <intensity>` | Darken corners for focus effect (0.0 to 1.0) |
+| `glow` | `glow <intensity> <radius>` | Add soft glow around bright areas |
+| `tilt-shift` | `tilt-shift <blur> <pos> <width>` | Miniature effect with selective focus |
+| `noise` | `noise <amount>` | Add film grain/noise (0.0 to 1.0) |
+
+### Advanced Filters
+
+| Modifier | Usage | Description |
+|----------|-------|-------------|
+| `gradient-linear` | `gradient-linear <#start> <#end> <angle> <opacity>` | Linear gradient overlay |
+| `gradient-radial` | `gradient-radial <cx> <cy> <#start> <#end> <r> <opacity>` | Radial gradient overlay |
+| `censor` | `censor <x> <y> <w> <h> <method> <strength>` | Censor area (blur/pixelate/black) |
+
+### Filter Examples
+
+```bash
+# Professional portrait enhancement
+mimg portrait.jpg median-filter 3 vibrance 0.2 sharpen -o enhanced.jpg
+
+# Artistic oil painting
+mimg photo.jpg oil-painting 5 posterize 8 vignette 0.4 -o artistic.jpg
+
+# Tilt-shift miniature effect
+mimg cityscape.jpg tilt-shift 8.0 0.5 0.3 saturation 1.3 -o miniature.jpg
+
+# Dreamy glow effect
+mimg photo.jpg glow 0.6 15 gaussian-blur 1.5 -o dreamy.jpg
+
+# Film grain texture
+mimg photo.jpg noise 0.08 contrast 0.95 vignette 0.2 -o filmic.jpg
+```
+
+## Transforms (6 modifiers)
+
+Geometric transformations and shape modifications.
+
+| Modifier | Usage | Description |
+|----------|-------|-------------|
+| `resize` | `resize <width> <height>` | Resize image with nearest-neighbor sampling |
+| `crop` | `crop <x> <y> <width> <height>` | Crop using top-left coordinate and dimensions |
+| `rotate` | `rotate <degrees>` | Rotate clockwise by any angle (auto-resizes canvas) |
+| `flip` | `flip <horizontal\|vertical>` | Flip image horizontally or vertically |
+| `round-corners` | `round-corners <radius>` | Round corners with specified radius (pixels) |
+| `trim` | `trim <threshold>` | Auto-crop transparent or solid-color borders |
+
+### Transform Examples
+
+```bash
+# Resize for web
+mimg large.png resize 1920 1080 sharpen -o web.png
+
+# Create profile picture
+mimg portrait.jpg crop 200 100 400 400 resize 512 512 round-corners 256 -o avatar.png
+
+# Rotate and adjust
+mimg photo.jpg rotate 90 brightness 10 contrast 1.1 -o rotated.jpg
+
+# Mirror effect
+mimg photo.jpg flip horizontal saturation 1.2 -o mirrored.jpg
+```
+
+## Chaining Modifiers
+
+The real power of mimg comes from chaining modifiers together. Process images through complex pipelines:
+
+```bash
+# Professional photo edit
+mimg raw.jpg \
+  exposure 0.3 \
+  contrast 1.2 \
+  vibrance 0.4 \
+  temperature 5 \
+  sharpen \
+  vignette 0.2 \
+  -o final.jpg
+
+# Creative Instagram-style filter
+mimg photo.jpg \
+  adjust-channels 1.1 0.95 0.9 \
+  vibrance 0.5 \
+  gaussian-blur 0.8 \
+  noise 0.03 \
+  vignette 0.3 \
+  -o filtered.jpg
+
+# Dramatic black and white
+mimg landscape.jpg \
+  grayscale \
+  contrast 1.5 \
+  edge-enhancement 0.3 \
+  vignette 0.4 \
+  -o dramatic-bw.jpg
+```
+
+## Performance Tips
+
+mimg uses SIMD optimizations for maximum speed:
+
+- **Small images** (< 1MB): Process in < 100ms
+- **Medium images** (1-5MB): Process in < 500ms
+- **Large images** (5-20MB): Process in < 2s
+
+Tips for best performance:
+1. Order modifiers efficiently (transforms first, then filters, then color)
+2. Use presets to save and reuse common chains
+3. Process in batches using wildcards
+4. Add `-v` flag to see timing information
+
+## Preset Files
+
+Save modifier chains as presets for reusability:
+
+**portrait-enhance.preset**:
+```
+median-filter 3
+vibrance 0.2
+contrast 1.1
+edge-enhancement 0.1
+sharpen
+```
+
+Use it:
+```bash
+mimg photo.jpg --preset portrait-enhance.preset -o enhanced.jpg
+```
+
+## Supported Formats
+
+mimg supports these image formats for input and output:
+
+- **PNG** - Lossless with transparency
+- **JPEG** - Lossy compression
+- **BMP** - Windows bitmap
+- **TGA** - Truevision Targa
+- **QOI** - Quite OK Image format
+- **PPM** - Portable pixmap
+- **PGM** - Portable graymap
+- **PAM** - Portable arbitrary map
+
+Format is auto-detected from file extension.
+
+## What's Next?
+
+- [View Gallery](/gallery/) - See 38 examples of these modifiers in action
+- [Getting Started](/getting-started/) - Learn the basics
+- [Download](/download/) - Get the latest release
+- [API Reference](/api/) - Use mimg as a Zig library
+
+## Need More?
+
+Request new features on [GitHub Issues](https://github.com/brian-sinquin/mimg/issues) or contribute to the project!
