@@ -1,6 +1,7 @@
 .zig-cache/
 zig-out/
 *.PNG
+!lena.png
 *.jpg
 *.jpeg
 *.gif
