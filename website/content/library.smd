@@ -442,5 +442,6 @@ std.debug.print("Processing took: {d:.2}ms\n", .{duration_ms});
 
 ## Next Steps
 
-- [Installation](/installation/) - Set up mimg for development
+- [Download](/download/) - Get mimg for your platform
+- [Getting Started](/getting-started/) - Learn the basics
 - [Troubleshooting](/troubleshooting/) - Debug library usage issues
