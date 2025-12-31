@@ -26,19 +26,19 @@ jobs:
         with:
           version: 0.15.1
 
-      - name: Build website
+      - name: Build mimg executable
+        run: zig build
+
+      - name: Build website with gallery
         run: zig build website
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
 
-      - name: Copy source image for website
-        run: cp lena.png website/
-
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./website
+          path: ./website/zig-out
 
   deploy:
     environment:
