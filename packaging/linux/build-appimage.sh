@@ -46,15 +46,17 @@ Comment=High-performance command-line image processing tool
 Terminal=true
 EOF
 
-# Create a simple PNG icon using ImageMagick if available, otherwise create a placeholder
+# Create a simple PNG icon using ImageMagick if available, otherwise create a minimal valid PNG
 if command -v convert &> /dev/null; then
     convert -size 256x256 xc:none -fill blue -draw "circle 128,128 128,32" \
         -fill white -pointsize 72 -gravity center -annotate +0+0 "M" \
-        "$APPDIR/mimg.png" 2>/dev/null || touch "$APPDIR/mimg.png"
+        "$APPDIR/mimg.png" 2>/dev/null || {
+        # Fallback to minimal 1x1 transparent PNG (safe, minimal data)
+        printf '\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\rIDATx\x9cc\x00\x01\x00\x00\x05\x00\x01\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82' > "$APPDIR/mimg.png"
+    }
 else
-    # Create minimal valid PNG if ImageMagick is not available
-    # This is a 1x1 transparent PNG
-    echo -n 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==' | base64 -d > "$APPDIR/mimg.png"
+    # Create minimal 1x1 transparent PNG (safe, minimal data)
+    printf '\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\rIDATx\x9cc\x00\x01\x00\x00\x05\x00\x01\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82' > "$APPDIR/mimg.png"
 fi
 
 cp "$APPDIR/mimg.png" "$APPDIR/.DirIcon"
@@ -66,7 +68,20 @@ if ! command -v appimagetool &> /dev/null; then
     echo "Downloading appimagetool..."
     APPIMAGETOOL_VERSION="13"
     APPIMAGETOOL_URL="https://github.com/AppImage/AppImageKit/releases/download/${APPIMAGETOOL_VERSION}/appimagetool-x86_64.AppImage"
+    APPIMAGETOOL_SHA256="df3baf5ca5facbecfc2f3fa6713c29ab9cefa8fd8c1eac5d283b79cab33e4acb"
+    
     wget -q "$APPIMAGETOOL_URL" -O "$TMP_DIR/appimagetool"
+    
+    # Verify checksum if sha256sum is available
+    if command -v sha256sum &> /dev/null; then
+        echo "$APPIMAGETOOL_SHA256  $TMP_DIR/appimagetool" | sha256sum -c - || {
+            echo "Error: Checksum verification failed for appimagetool"
+            exit 1
+        }
+    else
+        echo "Warning: sha256sum not available, skipping checksum verification"
+    fi
+    
     chmod +x "$TMP_DIR/appimagetool"
     APPIMAGETOOL="$TMP_DIR/appimagetool"
 else

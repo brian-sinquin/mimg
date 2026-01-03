@@ -29,7 +29,7 @@ sed "s/%{version}/$VERSION/g" mimg.spec > "$TMP_DIR/SPECS/mimg.spec"
 CHANGELOG_DATE=$(date "+%a %b %d %Y")
 cat >> "$TMP_DIR/SPECS/mimg.spec" << EOF
 
-* $CHANGELOG_DATE Automated Build <automated@build.system> - $VERSION-1
+* $CHANGELOG_DATE Build System <build@brian-sinquin.fr> - $VERSION-1
 - Automated build for version $VERSION
 EOF
 
