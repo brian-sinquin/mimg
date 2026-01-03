@@ -46,17 +46,16 @@ Comment=High-performance command-line image processing tool
 Terminal=true
 EOF
 
-# Create a simple PNG icon using ImageMagick if available, otherwise create a minimal valid PNG
+# Minimal 1x1 transparent PNG (safe, minimal data)
+FALLBACK_PNG='\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\rIDATx\x9cc\x00\x01\x00\x00\x05\x00\x01\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82'
+
+# Create a simple PNG icon using ImageMagick if available, otherwise use fallback
 if command -v convert &> /dev/null; then
     convert -size 256x256 xc:none -fill blue -draw "circle 128,128 128,32" \
         -fill white -pointsize 72 -gravity center -annotate +0+0 "M" \
-        "$APPDIR/mimg.png" 2>/dev/null || {
-        # Fallback to minimal 1x1 transparent PNG (safe, minimal data)
-        printf '\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\rIDATx\x9cc\x00\x01\x00\x00\x05\x00\x01\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82' > "$APPDIR/mimg.png"
-    }
+        "$APPDIR/mimg.png" 2>/dev/null || printf "$FALLBACK_PNG" > "$APPDIR/mimg.png"
 else
-    # Create minimal 1x1 transparent PNG (safe, minimal data)
-    printf '\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\rIDATx\x9cc\x00\x01\x00\x00\x05\x00\x01\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82' > "$APPDIR/mimg.png"
+    printf "$FALLBACK_PNG" > "$APPDIR/mimg.png"
 fi
 
 cp "$APPDIR/mimg.png" "$APPDIR/.DirIcon"
