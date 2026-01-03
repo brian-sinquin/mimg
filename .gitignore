@@ -15,3 +15,15 @@ website/content/convert_docs.py
 website/content/gallery-data.json
 website/gallery-data.json
 RELEASES.md
+
+# Packaging artifacts
+packaging/**/*.deb
+packaging/**/*.rpm
+packaging/**/*.AppImage
+packaging/**/*.dmg
+packaging/**/*.pkg
+packaging/**/*.msi
+packaging/**/*.wixobj
+packaging/**/*.wixpdb
+*.tar.gz
+*.zip

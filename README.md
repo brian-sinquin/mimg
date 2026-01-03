@@ -15,6 +15,35 @@ A high-performance command-line image processing tool written in Zig.
 
 ## Installation
 
+### Pre-built Installers (Recommended)
+
+Download the latest release for your platform from the [Releases page](https://github.com/brian-sinquin/mimg/releases):
+
+#### Windows
+- **MSI Installer** (`mimg-installer.msi`): Professional installer with automatic PATH configuration and Start Menu shortcuts
+- **Portable ZIP** (`mimg-x86_64-windows.zip`): Extract and run without installation
+
+#### macOS
+- **DMG Image** (`mimg-*.dmg`): Drag-and-drop installer with visual interface
+- **PKG Installer** (`mimg-*.pkg`): Traditional macOS installer package
+- **Portable TAR.GZ** (`mimg-x86_64-macos.tar.gz`): Extract and use directly
+
+#### Linux
+- **DEB Package** (`mimg_*_amd64.deb`): For Debian, Ubuntu, and derivatives
+  ```bash
+  sudo dpkg -i mimg_*_amd64.deb
+  ```
+- **RPM Package** (`mimg-*.rpm`): For Fedora, RHEL, and derivatives
+  ```bash
+  sudo rpm -i mimg-*.rpm
+  ```
+- **AppImage** (`mimg-*-x86_64.AppImage`): Universal Linux executable, no installation required
+  ```bash
+  chmod +x mimg-*-x86_64.AppImage
+  ./mimg-*-x86_64.AppImage
+  ```
+- **Portable TAR.GZ** (`mimg-x86_64-linux.tar.gz`): Extract and use directly
+
 ### Build from Source
 
 ```bash
@@ -27,7 +56,7 @@ The compiled binary will be available at `zig-out/bin/mimg`.
 
 ### Requirements
 
-- Zig 0.15.1 or later
+- Zig 0.15.1 or later (for building from source)
 
 ## Usage
 
