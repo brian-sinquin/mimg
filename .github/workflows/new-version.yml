@@ -59,12 +59,35 @@ jobs:
       - name: Upload Linux artifacts
         uses: svenstaro/upload-release-action@v2
         with:
-          file: |
-            mimg-x86_64-linux.tar.gz
-            packaging/linux/*.deb
-            packaging/linux/*.rpm
-            packaging/linux/*.AppImage
           file_glob: true
+          file: "mimg-x86_64-linux.tar.gz"
+          overwrite: true
+          tag: ${{ github.ref }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Linux DEB package
+        uses: svenstaro/upload-release-action@v2
+        with:
+          file_glob: true
+          file: "packaging/linux/*.deb"
+          overwrite: true
+          tag: ${{ github.ref }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Linux RPM package
+        uses: svenstaro/upload-release-action@v2
+        with:
+          file_glob: true
+          file: "packaging/linux/*.rpm"
+          overwrite: true
+          tag: ${{ github.ref }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Linux AppImage
+        uses: svenstaro/upload-release-action@v2
+        with:
+          file_glob: true
+          file: "packaging/linux/*.AppImage"
           overwrite: true
           tag: ${{ github.ref }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
@@ -109,11 +132,26 @@ jobs:
       - name: Upload macOS artifacts
         uses: svenstaro/upload-release-action@v2
         with:
-          file: |
-            mimg-x86_64-macos.tar.gz
-            packaging/macos/*.dmg
-            packaging/macos/*.pkg
           file_glob: true
+          file: "mimg-x86_64-macos.tar.gz"
+          overwrite: true
+          tag: ${{ github.ref }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload macOS DMG
+        uses: svenstaro/upload-release-action@v2
+        with:
+          file_glob: true
+          file: "packaging/macos/*.dmg"
+          overwrite: true
+          tag: ${{ github.ref }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload macOS PKG
+        uses: svenstaro/upload-release-action@v2
+        with:
+          file_glob: true
+          file: "packaging/macos/*.pkg"
           overwrite: true
           tag: ${{ github.ref }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
@@ -160,10 +198,17 @@ jobs:
       - name: Upload Windows artifacts
         uses: svenstaro/upload-release-action@v2
         with:
-          file: |
-            mimg-x86_64-windows.zip
-            packaging/windows/*.msi
           file_glob: true
+          file: "mimg-x86_64-windows.zip"
+          overwrite: true
+          tag: ${{ github.ref }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Windows MSI
+        uses: svenstaro/upload-release-action@v2
+        with:
+          file_glob: true
+          file: "packaging/windows/*.msi"
           overwrite: true
           tag: ${{ github.ref }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}

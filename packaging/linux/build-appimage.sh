@@ -46,14 +46,16 @@ Comment=High-performance command-line image processing tool
 Terminal=true
 EOF
 
-# Create a simple icon (using a text-based placeholder)
-# In a real scenario, you would use an actual icon file
-cat > "$APPDIR/mimg.png" << 'EOF'
-‰PNG
-
-IHDR@@€a	pHYsÒÝ~üIDATxí[isÜFþ®Û'5©2ª"%ʒm'N‰'mÉq
-IÜ¢@ÄT@B©¯¿m÷¾ßïãã;3=¼>·ª¼öZŸkõù>Çù<çóÆ·¯_¿~ýúõëבå˗/[«/^¼xñâÅ‹Þ»w¯^½zõêÕ«W¯^½zõêÕ«W¯^½zõêÕ«W¯^½zõêÕ«W¯^½zõêÕ«W¯^½zõêÕ«W¯^½zõêÕ«W¯^½zõêÕ«W¯^½zõêÕ«W¯^½zõêÕ«W¯^½zõêÕ«W¯^½zõêÕ«W¯^½z¡²N¶'ÒEND®B`‚
-EOF
+# Create a simple PNG icon using ImageMagick if available, otherwise create a placeholder
+if command -v convert &> /dev/null; then
+    convert -size 256x256 xc:none -fill blue -draw "circle 128,128 128,32" \
+        -fill white -pointsize 72 -gravity center -annotate +0+0 "M" \
+        "$APPDIR/mimg.png" 2>/dev/null || touch "$APPDIR/mimg.png"
+else
+    # Create minimal valid PNG if ImageMagick is not available
+    # This is a 1x1 transparent PNG
+    echo -n 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==' | base64 -d > "$APPDIR/mimg.png"
+fi
 
 cp "$APPDIR/mimg.png" "$APPDIR/.DirIcon"
 cp "$APPDIR/mimg.png" "$APPDIR/usr/share/icons/hicolor/256x256/apps/mimg.png"
