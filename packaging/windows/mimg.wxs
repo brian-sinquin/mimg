@@ -5,7 +5,7 @@
            Language="1033" 
            Version="!(bind.FileVersion.mimgEXE)" 
            Manufacturer="Brian Sinquin" 
-           UpgradeCode="12345678-1234-1234-1234-123456789ABC">
+           UpgradeCode="A1B2C3D4-5678-9ABC-DEF0-123456789ABC">
     
     <Package InstallerVersion="200" 
              Compressed="yes" 
@@ -33,7 +33,7 @@
     </Directory>
 
     <DirectoryRef Id="ApplicationProgramsFolder">
-      <Component Id="ApplicationShortcut" Guid="12345678-1234-1234-1234-123456789ABD">
+      <Component Id="ApplicationShortcut" Guid="B9E8F7D6-C5A4-3B2D-1E9F-8A7B6C5D4E3F">
         <Shortcut Id="ApplicationStartMenuShortcut"
                   Name="mimg Command Prompt"
                   Description="Open command prompt with mimg in PATH"
@@ -50,7 +50,7 @@
     </DirectoryRef>
 
     <DirectoryRef Id="INSTALLFOLDER">
-      <Component Id="EnvironmentPath" Guid="12345678-1234-1234-1234-123456789ABE">
+      <Component Id="EnvironmentPath" Guid="C3F5E7D9-B1A3-5C7E-9F2D-4E6A8B0C2D4E">
         <Environment Id="PATH" 
                      Name="PATH" 
                      Value="[INSTALLFOLDER]" 
@@ -68,7 +68,7 @@
     </DirectoryRef>
 
     <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
-      <Component Id="mimgEXE" Guid="12345678-1234-1234-1234-123456789ABF">
+      <Component Id="mimgEXE" Guid="D7A5C9E3-F1B7-8D4A-2C6E-0B8F4A2E6D8C">
         <File Id="mimgEXE" 
               Source="$(var.BinaryPath)\mimg.exe" 
               KeyPath="yes" />

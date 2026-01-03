@@ -32,7 +32,7 @@ Version: $VERSION
 Section: graphics
 Priority: optional
 Architecture: amd64
-Maintainer: Brian Sinquin <brian.sinquin@example.com>
+Maintainer: Brian Sinquin <contact@brian-sinquin.fr>
 Description: High-performance command-line image processing tool
  mimg is a fast image processing tool written in Zig that supports
  multiple formats (PNG, JPEG, BMP, QOI) with chainable modifiers

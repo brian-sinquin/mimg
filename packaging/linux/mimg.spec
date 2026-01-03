@@ -33,5 +33,4 @@ install -m 0755 %{_sourcedir}/mimg %{buildroot}/usr/local/bin/mimg
 /usr/local/bin/mimg
 
 %changelog
-* $(date "+%a %b %d %Y") Automated Build <automated@build.system> - %{version}-1
-- Automated build for version %{version}
+# Changelog will be added during package build

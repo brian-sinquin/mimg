@@ -64,7 +64,9 @@ cp "$APPDIR/mimg.desktop" "$APPDIR/usr/share/applications/mimg.desktop"
 # Download appimagetool if not available
 if ! command -v appimagetool &> /dev/null; then
     echo "Downloading appimagetool..."
-    wget -q https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage -O "$TMP_DIR/appimagetool"
+    APPIMAGETOOL_VERSION="13"
+    APPIMAGETOOL_URL="https://github.com/AppImage/AppImageKit/releases/download/${APPIMAGETOOL_VERSION}/appimagetool-x86_64.AppImage"
+    wget -q "$APPIMAGETOOL_URL" -O "$TMP_DIR/appimagetool"
     chmod +x "$TMP_DIR/appimagetool"
     APPIMAGETOOL="$TMP_DIR/appimagetool"
 else

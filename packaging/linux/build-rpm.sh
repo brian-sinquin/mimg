@@ -25,6 +25,14 @@ cp "$BINARY_PATH" "$TMP_DIR/SOURCES/mimg"
 # Copy and process spec file
 sed "s/%{version}/$VERSION/g" mimg.spec > "$TMP_DIR/SPECS/mimg.spec"
 
+# Add changelog entry to spec file
+CHANGELOG_DATE=$(date "+%a %b %d %Y")
+cat >> "$TMP_DIR/SPECS/mimg.spec" << EOF
+
+* $CHANGELOG_DATE Automated Build <automated@build.system> - $VERSION-1
+- Automated build for version $VERSION
+EOF
+
 # Build the RPM
 rpmbuild --define "_topdir $TMP_DIR" \
     --define "version $VERSION" \
